@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fase Sigma — Resultados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/kit1.css?v=1795537189">
+<link rel="stylesheet" href="css/charpy.css?v=1795635873">
+<link rel="stylesheet" href="css/tracao.css?v=1795635193">
+<link rel="stylesheet" href="css/comorecebido.css?v=1795490782">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e1114;
+    --bg-2: #151a1f;
+    --ink: #eef1f3;
+    --ink-2: #aab3ba;
+    --ink-3: #6f7a83;
+    --line: #2a323a;
+    --accent: #f6621f;      /* laranja da identidade LPTS */
+    --accent-2: #5fb3c4;    /* ferrita/austenita: aço frio */
+    --serif: "IBM Plex Serif", Georgia, serif;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Estrutura de slides ---------- */
+  .deck { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- Capa ---------- */
+  .cover {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    height: 100%;
+  }
+
+  .cover-text {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 28px;
+    padding: clamp(28px, 4vw, 64px) clamp(24px, 5vw, 80px);
+    background: var(--bg);
+  }
+
+  .brand {
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .brand { gap: 22px; }
+  .brand .logo { height: clamp(34px, 3.4vw, 54px); width: auto; display: block; }
+  .brand .partners { white-space: nowrap; padding-left: 22px; border-left: 1px solid var(--line); line-height: 1.6; }
+  .brand .sep { color: var(--ink-3); margin: 0 6px; }
+
+  .title-block { max-width: 760px; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 22px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .kicker::before {
+    content: ""; width: 32px; height: 1px; background: var(--accent);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(28px, 3.1vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .subtitle {
+    margin-top: 22px;
+    font-size: clamp(15px, 1.25vw, 19px);
+    line-height: 1.5;
+    color: var(--ink-2);
+    font-weight: 300;
+    max-width: 52ch;
+  }
+  .subtitle strong { color: var(--ink); font-weight: 500; }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    justify-content: start;
+    gap: 18px clamp(20px, 2.2vw, 36px);
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .meta dt {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .meta dd { font-size: 14px; line-height: 1.45; color: var(--ink); }
+  @media (min-width: 861px) { .meta dd { white-space: nowrap; } }
+  .meta dd span { display: block; color: var(--ink-2); }
+  .meta .funding { align-self: end; }
+  .logo-chip { display: inline-flex !important; align-items: center; }
+  .logo-chip img { height: 32px; width: auto; display: block; }
+
+  /* Imagem da capa */
+  .cover-image {
+    position: relative;
+    overflow: hidden;
+    background: #222;
+  }
+  .cover-image img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: contrast(1.08) brightness(.92);
+    transform: scale(1.04);
+    animation: drift 30s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from { transform: scale(1.04) translate(0, 0); }
+    to   { transform: scale(1.12) translate(-2%, -1.5%); }
+  }
+  .cover-image::before {   /* funde a imagem com o painel de texto */
+    content: ""; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(90deg, var(--bg) 0%, rgba(14,17,20,.35) 22%, rgba(14,17,20,0) 50%),
+                linear-gradient(0deg, rgba(14,17,20,.75) 0%, rgba(14,17,20,0) 35%);
+  }
+  .sigma-mark {
+    position: absolute; z-index: 2;
+    right: clamp(20px, 3vw, 48px); top: clamp(4px, 1vw, 16px);
+    font-family: var(--serif);
+    font-size: clamp(120px, 16vw, 260px);
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(246,98,31,.9);
+    user-select: none;
+  }
+  .caption {
+    position: absolute; z-index: 2;
+    left: clamp(20px, 3vw, 40px); right: clamp(20px, 3vw, 40px); bottom: clamp(20px, 3vw, 36px);
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .06em;
+    color: var(--ink-2);
+  }
+  .caption .scale { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+  .caption .scale i { display: block; height: 2px; background: var(--ink); }
+
+  .cta {
+    display: inline-flex; align-items: center; gap: 12px;
+    margin-top: 26px;
+    padding: 11px 20px;
+    border: 1px solid var(--accent); border-radius: 999px;
+    color: var(--ink); text-decoration: none;
+    font-family: var(--mono); font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
+    transition: background .2s ease, color .2s ease;
+  }
+  .cta span { color: var(--accent); transition: transform .2s ease, color .2s ease; }
+  .cta:hover, .cta:focus-visible { background: var(--accent); color: var(--bg); outline: none; }
+  .cta:hover span, .cta:focus-visible span { color: var(--bg); transform: translateX(4px); }
+
+  /* ---------- Slides internos ---------- */
+  .inner {
+    padding: clamp(24px, 3.5vw, 52px) clamp(24px, 5vw, 80px) clamp(48px, 5vw, 72px);
+  }
+  .inner.active { display: flex; flex-direction: column; }
+  .slide-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .logo-sm { height: 26px; width: auto; display: block; }
+  .logo-link { display: inline-block; border-radius: 4px; transition: opacity .2s ease; }
+  .logo-link:hover { opacity: .75; }
+  .logo-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+  /* ---------- Sumário ---------- */
+  .agenda {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, .8fr) minmax(0, 2fr);
+    gap: clamp(32px, 5vw, 96px);
+    align-items: center;
+    padding-top: clamp(24px, 3vw, 40px);
+  }
+  h2 {
+    font-family: var(--serif); font-weight: 400;
+    font-size: clamp(40px, 5vw, 76px); line-height: 1;
+    letter-spacing: -.015em;
+  }
+  .lede {
+    margin-top: 22px; max-width: 34ch;
+    color: var(--ink-2); font-weight: 300; line-height: 1.55;
+    font-size: clamp(15px, 1.15vw, 18px);
+  }
+  .levels { display: flex; gap: 8px; margin-top: 28px; flex-wrap: wrap; }
+  .levels span {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px;
+  }
+  .levels b { color: var(--accent); font-weight: 500; }
+  .levels span:nth-child(1) b { opacity: .55; }
+  .levels span:nth-child(2) b { opacity: .8; }
+
+  .agenda-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 clamp(24px, 3vw, 56px);
+  }
+  .agenda-list li { border-top: 1px solid var(--line); }
+  .agenda-list a {
+    display: grid; grid-template-columns: 52px 1fr; gap: 4px;
+    padding: clamp(12px, 1.6vw, 22px) 0;
+    color: inherit; text-decoration: none;
+  }
+  .agenda-list h3 { transition: color .2s ease; }
+  .agenda-list a:hover h3, .agenda-list a:focus-visible h3 { color: var(--accent); }
+  .agenda-list a:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+  .agenda-list .arrow {
+    position: absolute; display: inline-block; margin-left: 10px; color: var(--accent);
+    opacity: 0; transform: translateX(-6px); transition: all .2s ease;
+  }
+  .agenda-list a:hover .arrow, .agenda-list a:focus-visible .arrow { opacity: 1; transform: none; }
+  .agenda-list li.wide { grid-column: 1 / -1; }
+
+  /* ---------- Abertura de seção ---------- */
+  .back { color: var(--ink-2); text-decoration: none; }
+  .back:hover { color: var(--accent); }
+  .divider-body {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    max-width: 900px;
+  }
+  .divider-num {
+    font-family: var(--serif); font-size: clamp(80px, 11vw, 180px); line-height: .9;
+    color: transparent; -webkit-text-stroke: 1.5px var(--accent);
+    margin-bottom: 20px;
+  }
+  .divider .lede { max-width: 52ch; }
+  .agenda-list a { grid-template-columns: 40px 100px 1fr; align-items: center; }
+  .agenda-list a > div { min-width: 0; overflow-wrap: anywhere; }
+  .ag-ico {
+    width: 86px; height: 86px; display: grid; place-items: center;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2);
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .ag-ico img { max-width: 72px; max-height: 72px; display: block; opacity: .82; transition: opacity .2s ease, transform .3s ease; }
+  .agenda-list a:hover .ag-ico, .agenda-list a:focus-visible .ag-ico { border-color: var(--accent); background: rgba(246,98,31,.06); }
+  .agenda-list a:hover .ag-ico img { opacity: 1; transform: scale(1.06); }
+  .agenda-list .num {
+    font-family: var(--mono); font-size: 13px; color: var(--accent);
+    padding-top: 5px;
+  }
+  .agenda-list h3 {
+    font-family: var(--sans); font-weight: 500;
+    font-size: clamp(17px, 1.45vw, 22px); line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .agenda-list p {
+    font-size: clamp(13px, .98vw, 15px); line-height: 1.5;
+    color: var(--ink-2); font-weight: 300;
+  }
+
+  /* ---------- Seção com links (cards) ---------- */
+  .section-split {
+    flex: 1; display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr);
+    gap: clamp(32px, 5vw, 88px); align-items: center;
+    padding-top: clamp(20px, 3vw, 36px);
+  }
+  .section-intro h2, .sub-text h2 { font-size: clamp(34px, 3.7vw, 60px); line-height: 1.05; overflow-wrap: break-word; }
+  .divider-num.small { font-size: clamp(64px, 7vw, 120px); display: block; }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 2vw, 28px); }
+  .card {
+    display: flex; flex-direction: column;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden; color: inherit; text-decoration: none;
+    transition: border-color .2s ease, transform .2s ease;
+  }
+  .card:hover, .card:focus-visible { border-color: var(--accent); transform: translateY(-3px); outline: none; }
+  .card-img { aspect-ratio: 4 / 3; overflow: hidden; background: #222; }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s ease; }
+  .card:hover .card-img img { transform: scale(1.05); }
+  .card-body { padding: clamp(16px, 1.6vw, 24px); }
+  .card-tag { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+  .card h3 { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 2.2vw, 34px); margin: 6px 0 8px; }
+  .card h3 .arrow { color: var(--accent); display: inline-block; transition: transform .2s ease; }
+  .card:hover h3 .arrow { transform: translateX(6px); }
+  .card p { color: var(--ink-2); font-weight: 300; font-size: clamp(13px, 1vw, 15px); line-height: 1.5; }
+  .chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .chips li { font-family: var(--mono); font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+
+  /* ---------- Subpáginas (texto + imagem) ---------- */
+  .sub-layout {
+    flex: 1; display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: clamp(32px, 5vw, 80px); align-items: center;
+    padding-top: clamp(20px, 3vw, 36px); min-height: 0;
+  }
+  .stats { display: flex; flex-wrap: wrap; gap: 0; margin-top: 32px; border-top: 1px solid var(--line); }
+  .stats > div { flex: 1 1 0; min-width: 110px; padding: 18px 20px 0 0; display: flex; flex-direction: column; gap: 4px; }
+  .stats > div + div { padding-left: 20px; border-left: 1px solid var(--line); }
+  .stat-label { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--accent); }
+  .stat-val { font-family: var(--serif); font-size: clamp(32px, 3.4vw, 52px); line-height: 1; }
+  .stat-val small { font-size: .5em; color: var(--ink-2); margin-left: 2px; }
+  .stat-sub { font-size: 13px; color: var(--ink-2); }
+  .note { margin-top: 24px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .sub-figure { margin: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .sub-figure img { width: 100%; max-height: 66vh; object-fit: cover; border-radius: 4px; display: block; }
+  .sub-figure figcaption { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: .04em; }
+
+  /* ---------- Rodapé de navegação ---------- */
+  .nav {
+    position: fixed; z-index: 10;
+    left: 0; right: 0; bottom: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 clamp(24px, 5vw, 80px);
+    height: 4px;
+  }
+  .progress { position: fixed; left: 0; bottom: 0; height: 3px; background: var(--accent); transition: width .4s ease; z-index: 11; }
+  .hint {
+    position: fixed; z-index: 10;
+    right: 20px; bottom: 16px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .hint kbd {
+    font-family: inherit;
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 6px; color: var(--ink-2);
+  }
+
+  /* entrada suave */
+  .reveal { opacity: 0; transform: translateY(12px); animation: in .8s cubic-bezier(.2,.7,.2,1) forwards; }
+  .d1 { animation-delay: .05s } .d2 { animation-delay: .2s } .d3 { animation-delay: .35s } .d4 { animation-delay: .5s } .d5 { animation-delay: .65s } .d6 { animation-delay: .8s } .d7 { animation-delay: .95s }
+  @keyframes in { to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { animation: none; opacity: 1; transform: none; }
+    .cover-image img { animation: none; }
+  }
+
+  /* ---------- Telas estreitas ---------- */
+  @media (max-width: 860px) {
+    body { overflow-y: auto; overflow-x: hidden; }
+    .deck, .slide { position: relative; height: auto; min-height: 100vh; }
+    .cover { grid-template-columns: 1fr; grid-template-rows: 42vh auto; }
+    .cover-image { order: -1; }
+    .cover-image::before {
+      background: linear-gradient(0deg, var(--bg) 0%, rgba(14,17,20,0) 45%);
+    }
+    .cover-text { gap: 36px; padding: 8px 16px 56px; }
+    .brand { flex-wrap: wrap; gap: 12px; }
+    .brand .partners { padding-left: 0; border-left: 0; }
+    .meta { grid-template-columns: 1fr 1fr; gap: 18px 24px; }
+    .caption { display: none; }
+    .inner { padding: 20px 16px 48px; }
+    .agenda { grid-template-columns: 1fr; gap: 28px; }
+    .agenda-list { grid-template-columns: 1fr; }
+    .agenda-list a { grid-template-columns: 30px 58px 1fr; }
+    .ag-ico { width: 50px; height: 50px; }
+    .ag-ico img { max-width: 40px; max-height: 40px; }
+    .section-split, .sub-layout { grid-template-columns: 1fr; gap: 28px; }
+    .cards { grid-template-columns: 1fr; }
+    .sub-figure img { max-height: none; }
+    .agenda-list .arrow { display: none; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<main class="deck" id="deck">
+
+  <!-- ===================== SLIDE 1 · CAPA ===================== -->
+  <section class="slide active" data-id="inicio" data-title="Capa">
+    <div class="cover">
+
+      <div class="cover-text">
+        <div class="brand reveal d1">
+          <img class="logo" src="assets/logo-lpts-claro.png" alt="LPTS — Laboratório de Pesquisa e Tecnologia em Soldagem">
+          <span class="partners">UFC <span class="sep">/</span> Petrobras · CENPES</span>
+        </div>
+
+        <div class="title-block">
+          <p class="kicker reveal d2">Projeto Fase Sigma · Resultados</p>
+          <h1 class="reveal d2">Metalurgia dos aços inoxidáveis superduplex: efeito das <em>fases deletérias</em> nas propriedades do material</h1>
+          <p class="subtitle reveal d3">
+            Precipitação controlada de fase <strong>σ</strong> no <strong>UNS S32750 (SAF 2507)</strong> e seu efeito sobre a microestrutura, a tenacidade (Charpy e CTOD) e a resistência mecânica.
+          </p>
+          <a class="cta reveal d4" href="#sumario" data-goto="sumario">Ver sumário <span aria-hidden="true">→</span></a>
+        </div>
+
+        <dl class="meta reveal d4">
+          <div>
+            <dt>Coordenação</dt>
+            <dd>Prof. Hélio Cordeiro de Miranda</dd>
+          </div>
+          <div>
+            <dt>SIGITEC</dt>
+            <dd>2026/00283-2</dd>
+          </div>
+          <div>
+            <dt>Data</dt>
+            <dd>Novembro de 2026</dd>
+          </div>
+          <div class="funding">
+            <dd><span class="logo-chip"><img src="assets/logo-petrobras.png?v=2" alt="Petrobras"></span></dd>
+          </div>
+        </dl>
+      </div>
+
+      <figure class="cover-image" aria-label="Micrografia MEV de amostra com 6% de fase sigma">
+        <img src="assets/capa-mev.jpg?v=2" alt="Micrografia MEV (BSE, 2000×) do superduplex com precipitados claros de fase sigma nos contornos de grão">
+        <div class="sigma-mark" aria-hidden="true">σ</div>
+        <figcaption class="caption">
+          <span>MEV · BSE · 2 000× · amostra 6% σ (Kit 1)</span>
+        </figcaption>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ===================== SLIDE 2 · SUMÁRIO ===================== -->
+  <section class="slide inner" data-id="sumario" data-title="Sumário">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#inicio" data-goto="inicio">← Início</a>
+    </header>
+
+    <div class="agenda">
+      <div class="agenda-intro">
+        <p class="kicker reveal d1">Roteiro</p>
+        <h2 class="reveal d2">Sumário</h2>
+        <p class="lede reveal d3">
+          Da simulação à tenacidade à fratura: precipitação controlada de fase σ em três níveis no superduplex UNS S32750.
+        </p>
+        <div class="levels reveal d4" aria-label="Níveis de fase sigma estudados">
+          <span><b>2%</b> σ</span><span><b>4%</b> σ</span><span><b>6%</b> σ</span>
+        </div>
+      </div>
+
+      <ol class="agenda-list">
+        <li class="reveal d1">
+          <a href="#simulacao" data-goto="simulacao">
+            <span class="num">01</span>
+            <span class="ag-ico" aria-hidden="true"><img src="assets/icones/simulacao.png" alt=""></span>
+            <div>
+              <h3>Simulação<span class="arrow" aria-hidden="true">→</span></h3>
+              <p>Simulação termodinâmica (JMatPro, Thermo-Calc) da precipitação na faixa crítica.</p>
+            </div>
+          </a>
+        </li>
+        <li class="reveal d2">
+          <a href="#microestrutura" data-goto="microestrutura">
+            <span class="num">02</span>
+            <span class="ag-ico" aria-hidden="true"><img src="assets/icones/caracterizacao.svg" alt=""></span>
+            <div>
+              <h3>Caracterização microestrutural<span class="arrow" aria-hidden="true">→</span></h3>
+              <p>Material como recebido e amostras do Kit 1 com 2, 4 e 6% de σ.</p>
+            </div>
+          </a>
+        </li>
+        <li class="reveal d3">
+          <a href="#charpy" data-goto="charpy">
+            <span class="num">03</span>
+            <span class="ag-ico" aria-hidden="true"><img src="assets/icones/charpy.png" alt=""></span>
+            <div>
+              <h3>Charpy<span class="arrow" aria-hidden="true">→</span></h3>
+              <p>Energia absorvida a +20, −20 e −50 °C, fractografia MEV e quantificação de fases.</p>
+            </div>
+          </a>
+        </li>
+        <li class="reveal d4">
+          <a href="#tracao" data-goto="tracao">
+            <span class="num">04</span>
+            <span class="ag-ico" aria-hidden="true"><img src="assets/icones/tracao.png" alt=""></span>
+            <div>
+              <h3>Ensaio de tração<span class="arrow" aria-hidden="true">→</span></h3>
+              <p>Resistência mecânica e ductilidade em função do teor de fase σ.</p>
+            </div>
+          </a>
+        </li>
+        <li class="reveal d5">
+          <a href="#ctod" data-goto="ctod">
+            <span class="num">05</span>
+            <span class="ag-ico" aria-hidden="true"><img src="assets/icones/ctod.png" alt=""></span>
+            <div>
+              <h3>CTOD<span class="arrow" aria-hidden="true">→</span></h3>
+              <p>Tenacidade à fratura: pré-trinca, medição da trinca e superfícies de fratura.</p>
+            </div>
+          </a>
+        </li>
+        <li class="reveal d6">
+          <a href="#gleeble" data-goto="gleeble">
+            <span class="num">06</span>
+            <span class="ag-ico" aria-hidden="true"><img src="assets/icones/gleeble.svg" alt=""></span>
+            <div>
+              <h3>Gleeble<span class="arrow" aria-hidden="true">→</span></h3>
+              <p>Simulação termomecânica e dilatometria para o diagrama TRC.</p>
+            </div>
+          </a>
+        </li>
+        <li class="reveal d6 wide">
+          <a href="#relatorios" data-goto="relatorios">
+            <span class="num">07</span>
+            <span class="ag-ico" aria-hidden="true"><img src="assets/icones/relatorios.svg" alt=""></span>
+            <div>
+              <h3>Relatórios<span class="arrow" aria-hidden="true">→</span></h3>
+              <p>Relatórios técnicos e gerenciais do projeto Fase Sigma.</p>
+            </div>
+          </a>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 01 · SIMULAÇÃO ===================== -->
+  <section class="slide inner divider" data-id="simulacao" data-title="Simulação">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="divider-body">
+      <span class="divider-num reveal d1">01</span>
+      <h2 class="reveal d2">Simulação</h2>
+      <p class="lede reveal d3">Simulação termodinâmica (JMatPro, Thermo-Calc) da precipitação na faixa crítica.</p>
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 02 · CARACTERIZAÇÃO MICROESTRUTURAL ===================== -->
+  <section class="slide inner" data-id="microestrutura" data-title="Caracterização microestrutural">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="section-split">
+      <div class="section-intro">
+        <span class="divider-num small reveal d1">02</span>
+        <h2 class="reveal d2">Caracterização microestrutural</h2>
+        <p class="lede reveal d3">Microestrutura do superduplex antes e depois da precipitação controlada de fase σ.</p>
+      </div>
+
+      <div class="cards">
+        <a class="card reveal d3" href="#kit1" data-goto="kit1">
+          <div class="card-img"><img src="assets/kit1-4pct.jpg" alt="MEV-BSE de amostra do Kit 1 com 4% de fase sigma nos contornos de grão"></div>
+          <div class="card-body">
+            <span class="card-tag">Após tratamento térmico</span>
+            <h3>Kit 1 <span class="arrow" aria-hidden="true">→</span></h3>
+            <p>Amostras com 2, 4 e 6% de σ, caracterizadas por MEV-BSE.</p>
+            <ul class="chips"><li>2% σ</li><li>4% σ</li><li>6% σ</li></ul>
+          </div>
+        </a>
+
+        <a class="card reveal d4" href="#como-recebido" data-goto="como-recebido">
+          <div class="card-img"><img src="assets/como-recebido-long.jpg" alt="MEV da seção longitudinal do material como recebido, com bandas de ferrita e austenita"></div>
+          <div class="card-body">
+            <span class="card-tag">Referência</span>
+            <h3>Como Recebido <span class="arrow" aria-hidden="true">→</span></h3>
+            <p>Seções longitudinal e circunferencial do material, por MEV e EBSD.</p>
+            <ul class="chips"><li>Longitudinal</li><li>Circunferencial</li></ul>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ----- 02 › Kit 1 (tabela editável; dados em dados/kit1.js) ----- -->
+  <section class="slide inner" data-id="kit1" data-title="Kit 1">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#microestrutura" data-goto="microestrutura">← Caracterização microestrutural</a>
+    </header>
+    <div class="k1">
+      <div class="k1-top">
+        <div>
+          <p class="kicker reveal d1">02 · Caracterização microestrutural</p>
+          <h2 class="reveal d2" id="k1-titulo">Kit 1 · Quantificação de fase σ</h2>
+          <p class="lede reveal d3" id="k1-sub"></p>
+        </div>
+        <div class="k1-tools reveal d3">
+          <span class="k1-badge" id="k1-badge" hidden>alterações não salvas em arquivo</span>
+          <button class="btn" id="k1-edit" type="button">Editar</button>
+          <button class="btn ghost" id="k1-save" type="button" hidden>Salvar arquivo</button>
+          <button class="btn ghost" id="k1-reset" type="button" hidden>Descartar</button>
+        </div>
+      </div>
+      <div class="k1-table-wrap reveal d4">
+        <table class="k1-table" id="k1-table">
+          <thead>
+            <tr class="grp">
+              <th rowspan="2" class="c-cond">Condição</th>
+              <th colspan="2">Microscopia óptica (MO)</th>
+              <th colspan="2">MEV · BSE</th>
+              <th colspan="2">Ferritoscópio</th>
+              <th rowspan="2" class="c-sit">Situação</th>
+            </tr>
+            <tr class="sub">
+              <th>Média (%)</th><th title="Desvio padrão, em pontos percentuais">Desv. Pad.</th>
+              <th>Média (%)</th><th title="Desvio padrão, em pontos percentuais">Desv. Pad.</th>
+              <th>Média (%)</th><th title="Desvio padrão, em pontos percentuais">Desv. Pad.</th>
+            </tr>
+          </thead>
+          <tbody id="k1-body"></tbody>
+        </table>
+      </div>
+      <p class="note reveal d4">Clique numa condição para ver as micrografias de MO e MEV com as respectivas quantificações.</p>
+    </div>
+  </section>
+  <!-- As páginas 2%, 4% e 6% são geradas por js/kit1.js logo após este slide -->
+
+  <!-- ----- 02 › Como Recebido ----- -->
+  <section class="slide inner" data-id="como-recebido" data-title="Como Recebido">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#microestrutura" data-goto="microestrutura">← Caracterização microestrutural</a>
+    </header>
+    <div class="sub-layout">
+      <div class="sub-text">
+        <p class="kicker reveal d1">02 · Caracterização microestrutural</p>
+        <h2 class="reveal d2">Como Recebido</h2>
+        <p class="lede reveal d3">Microestrutura de referência do UNS S32750 antes do tratamento térmico, com bandas de ferrita e austenita alongadas no sentido longitudinal.</p>
+        <div class="stats reveal d4">
+          <a class="stat-link" href="#cr-long" data-goto="cr-long" data-reg="long"><span class="stat-label">Longitudinal →</span><span class="stat-val">77</span><span class="stat-sub">imagens MEV · 3 mapas EBSD</span></a>
+          <a class="stat-link" href="#cr-circ" data-goto="cr-circ" data-reg="circ"><span class="stat-label">Circunferencial →</span><span class="stat-val">63</span><span class="stat-sub">imagens MEV · 3 mapas EBSD</span></a>
+        </div>
+      </div>
+      <figure class="tubo reveal d3" aria-label="Tubo: clique na seção longitudinal ou circunferencial">
+        <div class="tubo-art">
+          <img src="assets/tubo.jpg" alt="Desenho de um trecho de tubo">
+          <svg viewBox="0 0 720 600" class="tubo-map">
+            <!-- corpo do tubo: sentido longitudinal -->
+            <a href="#cr-long" data-goto="cr-long" class="reg" data-reg="long" aria-label="Ver microestrutura da seção longitudinal">
+              <path d="M25 222 C40 165 75 110 150 58 L200 46 L449.5 41 A223.5 269 0 0 0 449.5 579 L400 576 L300 536 L200 494 L150 475 C90 448 35 390 25 325 Z"/>
+            </a>
+            <!-- face do anel: seção circunferencial (furo não clicável) -->
+            <a href="#cr-circ" data-goto="cr-circ" class="reg" data-reg="circ" aria-label="Ver microestrutura da seção circunferencial">
+              <path fill-rule="evenodd" d="M226 310 a223.5 269 0 1 0 447 0 a223.5 269 0 1 0 -447 0 Z M266 311.5 a186.5 222.5 0 1 0 373 0 a186.5 222.5 0 1 0 -373 0 Z"/>
+            </a>
+            <!-- chamadas -->
+            <g class="callout" data-reg="long"><path d="M150 300 L60 470 L18 470"/><circle cx="150" cy="300" r="5"/></g>
+            <g class="callout" data-reg="circ"><path d="M640 160 L690 70 L700 70"/><circle cx="640" cy="160" r="5"/></g>
+          </svg>
+          <span class="tubo-lbl l" data-reg="long">Longitudinal</span>
+          <span class="tubo-lbl c" data-reg="circ">Circunferencial</span>
+        </div>
+        <figcaption>Clique numa região do tubo para ver a microestrutura da seção.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 03 · CHARPY (dados em dados/charpy.js, lógica em js/charpy.js) ===================== -->
+  <section class="slide inner" data-id="charpy" data-title="Charpy · Transição dúctil-frágil">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">03 · Charpy</p>
+        <h2>Transição dúctil-frágil</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Visualização">
+        <a href="#charpy" data-goto="charpy" class="on">Gráfico</a>
+        <a href="#charpy-cps" data-goto="charpy-cps">Tabela dos CPs</a>
+      </nav>
+    </div>
+    <div class="ch-filters" data-filtros></div>
+    <div class="ch-body">
+      <figure class="ch-chart" id="ch-chart" aria-label="Energia absorvida em função da temperatura de ensaio">
+        <svg id="ch-svg" role="img"></svg>
+        <div class="ch-tip" id="ch-tip" hidden></div>
+      </figure>
+      <aside class="ch-side">
+        <h3>Energia média (J)</h3>
+        <table class="ch-mean" id="ch-mean"></table>
+        <p class="ch-note">Média ± desvio padrão amostral. Clique numa linha para destacar a série. Zoom: roda do mouse ou arraste uma área no gráfico · Shift+arrastar move · duplo clique volta.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="slide inner" data-id="charpy-cps" data-title="Charpy · Tabela dos CPs">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">03 · Charpy</p>
+        <h2>Controle dos corpos de prova</h2>
+      </div>
+      <div class="ch-top-r">
+        <div class="k1-tools">
+          <span class="k1-badge" id="ch-badge" hidden>alterações não salvas em arquivo</span>
+          <button class="btn" id="ch-edit" type="button">Editar</button>
+          <button class="btn ghost" id="ch-add" type="button" hidden>+ CP</button>
+          <button class="btn ghost" id="ch-save" type="button" hidden>Salvar arquivo</button>
+          <button class="btn ghost" id="ch-reset" type="button" hidden>Descartar</button>
+        </div>
+        <nav class="cond-tabs ch-views" aria-label="Visualização">
+          <a href="#charpy" data-goto="charpy">Gráfico</a>
+          <a href="#charpy-cps" data-goto="charpy-cps" class="on">Tabela dos CPs</a>
+        </nav>
+      </div>
+    </div>
+    <div class="ch-filters" data-filtros></div>
+    <div class="ch-table-wrap k1-table-wrap">
+      <table class="k1-table ch-table" id="ch-table"></table>
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 04 · ENSAIO DE TRAÇÃO ===================== -->
+  <section class="slide inner" data-id="tracao" data-title="Ensaio de tração · Curvas">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">04 · Ensaio de tração</p>
+        <h2>Curvas tensão × deformação</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Visualização">
+        <a href="#tracao" data-goto="tracao" class="on">Curvas</a>
+        <a href="#tracao-comp" data-goto="tracao-comp">Comparação</a>
+        <a href="#tracao-cps" data-goto="tracao-cps">Tabela dos CPs</a>
+      </nav>
+    </div>
+    <div class="ch-filters" data-tr-filtros></div>
+    <div class="ch-body">
+      <div class="tr-left">
+        <div class="tr-vistas" id="tr-vistas" role="group" aria-label="Tipo de gráfico">
+          <button type="button" class="chip on" data-v="ss">Tensão × deformação</button>
+          <button type="button" class="chip" data-v="el">Região elástica</button>
+          <button type="button" class="chip" data-v="fd">Força × deslocamento</button>
+        </div>
+        <figure class="ch-chart" id="tr-chart" aria-label="Curvas do ensaio de tração">
+          <svg id="tr-svg" role="img"></svg>
+          <div class="ch-tip" id="tr-tip" hidden></div>
+        </figure>
+        <p class="tr-nota" id="tr-nota"></p>
+      </div>
+      <aside class="ch-side">
+        <h3>Média por grupo</h3>
+        <table class="ch-mean tr-mean" id="tr-mean"></table>
+        <p class="ch-note">Média ± desvio padrão amostral. E e Rp0,2 pelo extensômetro; Rm pela força máxima; A medido no CP após a fratura (ISO 6892-1, anexo H). Clique num grupo para isolá-lo.</p>
+        <p class="ch-note">Os CPs tratados têm E de ~140 GPa e a curva já é curva abaixo de 300 MPa, enquanto os sem tratamento dão ~200 GPa. Veja em “Região elástica”: pode ser efeito de montagem do extensômetro, a confirmar.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="slide inner" data-id="tracao-comp" data-title="Ensaio de tração · Comparação">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">04 · Ensaio de tração</p>
+        <h2>Comparação de propriedades</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Visualização">
+        <a href="#tracao" data-goto="tracao">Curvas</a>
+        <a href="#tracao-comp" data-goto="tracao-comp" class="on">Comparação</a>
+        <a href="#tracao-cps" data-goto="tracao-cps">Tabela dos CPs</a>
+      </nav>
+    </div>
+    <div class="ch-filters" data-tr-filtros></div>
+    <div class="tr-ctrl" id="tr-ctrl"></div>
+    <div class="ch-body">
+      <div class="tr-left">
+        <figure class="ch-chart" id="tr-comp-chart" aria-label="Comparação de propriedades mecânicas">
+          <svg id="tr-comp-svg" role="img"></svg>
+          <div class="ch-tip" id="tr-comp-tip" hidden></div>
+        </figure>
+        <p class="tr-nota" id="tr-comp-nota"></p>
+      </div>
+      <aside class="ch-side">
+        <h3 id="tr-comp-h">Estatística</h3>
+        <table class="ch-mean tr-mean" id="tr-comp-stats"></table>
+        <p class="ch-note">● longitudinal · ■ circunferencial. Cada ponto é um CP; traço horizontal = média, barra = ± desvio padrão amostral. Com n ≤ 3 por grupo, média e desvio padrão são apenas indicativos.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="slide inner" data-id="tracao-cps" data-title="Ensaio de tração · Tabela dos CPs">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">04 · Ensaio de tração</p>
+        <h2>Corpos de prova e propriedades</h2>
+      </div>
+      <div class="ch-top-r">
+        <div class="k1-tools">
+          <span class="k1-badge" id="tr-badge" hidden>alterações não salvas em arquivo</span>
+          <button class="btn" id="tr-edit" type="button">Editar</button>
+          <button class="btn ghost" id="tr-save" type="button" hidden>Salvar arquivo</button>
+          <button class="btn ghost" id="tr-reset" type="button" hidden>Descartar</button>
+        </div>
+        <nav class="cond-tabs ch-views" aria-label="Visualização">
+          <a href="#tracao" data-goto="tracao">Curvas</a>
+          <a href="#tracao-comp" data-goto="tracao-comp">Comparação</a>
+          <a href="#tracao-cps" data-goto="tracao-cps" class="on">Tabela dos CPs</a>
+        </nav>
+      </div>
+    </div>
+    <div class="ch-filters" data-tr-filtros></div>
+    <div class="ch-table-wrap k1-table-wrap">
+      <table class="k1-table ch-table tr-table" id="tr-table"></table>
+    </div>
+    <p class="tr-nota">Valores calculados a partir dos arquivos brutos da MTS; abaixo, em cinza, o valor do relatório MTS (laranja quando diverge mais de 3 %). Ag só é estimado com o comprimento útil Lc.</p>
+  </section>
+
+  <!-- ===================== SEÇÃO 05 · CTOD ===================== -->
+  <section class="slide inner divider" data-id="ctod" data-title="CTOD">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="divider-body">
+      <span class="divider-num reveal d1">05</span>
+      <h2 class="reveal d2">CTOD</h2>
+      <p class="lede reveal d3">Tenacidade à fratura: pré-trinca, medição da trinca e superfícies de fratura.</p>
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 06 · GLEEBLE ===================== -->
+  <section class="slide inner divider" data-id="gleeble" data-title="Gleeble">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="divider-body">
+      <span class="divider-num reveal d1">06</span>
+      <h2 class="reveal d2">Gleeble</h2>
+      <p class="lede reveal d3">Simulação termomecânica e dilatometria para o diagrama TRC.</p>
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 07 · RELATÓRIOS ===================== -->
+  <section class="slide inner divider" data-id="relatorios" data-title="Relatórios">
+    <header class="slide-head reveal d1">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="divider-body">
+      <span class="divider-num reveal d1">07</span>
+      <h2 class="reveal d2">Relatórios</h2>
+      <p class="lede reveal d3">Relatórios técnicos e gerenciais do projeto Fase Sigma.</p>
+    </div>
+  </section>
+
+  <!-- Próximos slides entram aqui -->
+
+</main>
+
+<div class="progress" id="progress"></div>
+<div class="hint"><kbd>←</kbd><kbd>→</kbd> navegar <span id="counter">1 / 1</span></div>
+
+<script src="dados/kit1.js"></script>
+<script src="dados/kit1-campos.js?v=1795537150"></script>
+<script src="js/kit1.js?v=1795537189"></script>
+<script src="dados/charpy.js?v=1795634254"></script>
+<script src="dados/charpy-micro.js"></script>
+<script src="js/charpy.js?v=1795635873"></script>
+<script src="dados/tracao.js?v=1795634820"></script>
+<script src="dados/tracao-curvas.js?v=1795634820"></script>
+<script src="js/tracao.js?v=1795635269"></script>
+<script src="dados/como-recebido.js?v=1795490769"></script>
+<script src="js/comorecebido.js?v=1795490769"></script>
+<script>
+  // Navegação simples por teclado / clique / toque. Novos slides = novas <section class="slide">.
+  (function () {
+    // Logo do LPTS (capa e cabeçalhos, inclusive páginas geradas por js/*.js) = link para o sumário
+    document.querySelectorAll('img.logo-sm, .brand img.logo').forEach(img => {
+      if (img.closest('a')) return;
+      const a = document.createElement('a');
+      a.className = 'logo-link';
+      a.href = '#sumario';
+      a.dataset.goto = 'sumario';
+      a.title = 'Ir para o sumário';
+      a.setAttribute('aria-label', 'LPTS · ir para o sumário');
+      img.replaceWith(a);
+      a.appendChild(img);
+    });
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const progress = document.getElementById('progress');
+    const counter = document.getElementById('counter');
+    // Endereço: #3 (número do slide) ou #charpy (data-id da seção)
+    function indexFromHash(h) {
+      h = decodeURIComponent((h || '').replace('#', ''));
+      const byId = slides.findIndex(s => s.dataset.id === h);
+      if (byId >= 0) return byId;
+      return (parseInt(h, 10) || 1) - 1;
+    }
+    let i = indexFromHash(location.hash);
+
+    function show(n) {
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      slides.forEach((s, k) => s.classList.toggle('active', k === i));
+      progress.style.width = ((i + 1) / slides.length * 100) + '%';
+      counter.textContent = (i + 1) + ' / ' + slides.length;
+      history.replaceState(null, '', '#' + (slides[i].dataset.id || (i + 1)));
+      window.scrollTo(0, 0);
+    }
+
+    // Links internos (sumário → seção, seção → sumário)
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-goto]');
+      if (!a) return;
+      e.preventDefault();
+      show(indexFromHash(a.dataset.goto));
+    });
+    window.addEventListener('hashchange', () => show(indexFromHash(location.hash)));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector('.lb.open')) return;
+      if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+      if (e.key === 'Home') show(0);
+      if (e.key === 'End') show(slides.length - 1);
+      if (e.key === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+    });
+
+    let x0 = null;
+    document.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
+      x0 = null;
+    });
+
+    show(i);
+  })();
+</script>
+</body>
+</html>
