@@ -1,0 +1,153 @@
+/* ===== Charpy · gráfico + tabela ===== */
+.ch-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 24px; flex-wrap: wrap; padding-top: 14px; }
+.ch-top h2 { font-size: clamp(28px, 2.8vw, 44px); line-height: 1.05; }
+.ch-top .kicker { margin-bottom: 10px; }
+.ch-top-r { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+/* filtros: uma linha acima do gráfico/tabela */
+.ch-filters { display: flex; flex-wrap: wrap; gap: 10px 28px; padding: 14px 0 10px; border-bottom: 1px solid var(--line); }
+.f-grp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.f-lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-right: 4px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 13px var(--sans); color: var(--ink-2); cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+}
+.chip:hover { color: var(--ink); border-color: var(--ink-3); }
+.chip.on { color: var(--ink); border-color: var(--ink-2); background: rgba(255,255,255,.05); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.chip:not(.on) .sw { opacity: .35; }
+.ls { width: 26px; height: 10px; flex: none; stroke: var(--ink-2); fill: var(--ink-2); stroke-width: 1.6; overflow: visible; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); cursor: pointer; margin-right: 8px; }
+.chk input { accent-color: var(--accent); }
+
+/* gráfico */
+.ch-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(250px, 24vw, 340px); gap: clamp(16px, 2vw, 32px); padding-top: 12px; }
+.ch-chart { position: relative; margin: 0; min-height: 0; background: var(--bg-2); border: 1px solid var(--line); border-radius: 6px; }
+.ch-chart svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; font-family: var(--mono); }
+.ch-chart .ax text { font-size: 11px; fill: var(--ink-3); }
+.ch-chart .ax .ttl, .ch-chart text.ttl { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+.ch-chart .grid { stroke: var(--line); stroke-width: 1; }
+.ch-chart .base { stroke: #3a444d; stroke-width: 1; }
+.ch-chart .hit { fill: transparent; cursor: pointer; }
+.ch-chart .serie, .ch-chart .lbl, .ch-chart .lbls line { transition: opacity .2s ease; }
+.ch-chart .dim { opacity: .15; }
+.ch-chart .lbl { font-size: 11px; fill: var(--ink); cursor: pointer; }
+.ch-tip {
+  position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 10px)); pointer-events: none;
+  background: #0b0e11; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+  font-size: 12px; line-height: 1.5; color: var(--ink-2); white-space: nowrap; box-shadow: 0 6px 20px rgba(0,0,0,.4);
+}
+.ch-tip b { color: var(--ink); font-weight: 500; }
+.ch-tip .tv { font-family: var(--mono); color: var(--ink); font-size: 13px; }
+
+.ch-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; }
+.ch-side h3 { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.ch-mean { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ch-mean th { font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--ink-3); text-align: right; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.ch-mean th:first-child { text-align: left; }
+.ch-mean td { padding: 8px 4px; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ch-mean td small { color: var(--ink-3); font-size: 10px; }
+.ch-mean td:first-child { text-align: left; font-family: var(--sans); display: flex; align-items: center; gap: 8px; }
+.ch-mean tr[data-k] { cursor: pointer; transition: opacity .2s ease; }
+.ch-mean tr[data-k]:hover td { background: rgba(255,255,255,.03); }
+.ch-mean tr.dim { opacity: .35; }
+.ch-mean tr.sel td { background: rgba(255,255,255,.05); }
+.ch-mean .nd { color: var(--ink-3); }
+.ch-note { font-size: 11px; color: var(--ink-3); line-height: 1.5; }
+
+/* tabela dos CPs */
+.ch-table-wrap { flex: 1; min-height: 0; overflow: auto; margin-top: 12px; }
+.ch-table { font-size: 13px; }
+.ch-table thead th { position: sticky; z-index: 2; }
+.ch-table thead tr.grp th { top: 0; }
+.ch-table thead tr.sub th { top: 41px; width: auto; }
+.ch-table th, .ch-table td { padding: 7px 12px; }
+.ch-table td.nd, .ch-table .nd { color: var(--ink-3); }
+.ch-table td.en { color: var(--ink); font-weight: 500; }
+.ch-table td.calc { color: var(--ink-2); }
+.ch-table td.tt { color: var(--ink-2); font-size: .92em; }
+.ch-table tr.g-head td {
+  text-align: left; font-family: var(--sans); font-weight: 500; font-size: 13px; color: var(--ink);
+  background: #1a232b !important; padding-top: 10px; padding-bottom: 10px;
+}
+.ch-table tr.g-head .sw { margin-right: 10px; vertical-align: -1px; }
+.ch-table tr.g-mean td {
+  text-align: left; font-family: var(--sans); font-size: 12px; color: var(--ink-2); background: transparent !important;
+  border-bottom: 1px solid var(--line);
+}
+.ch-table tr.g-mean b { font-family: var(--mono); color: var(--ink); font-weight: 500; }
+.ch-table tr.g-mean span span { color: var(--ink-3); }
+.ch-table tbody.g { border-top: 2px solid var(--line); }
+.ch-table td + td { border-left: 1px solid var(--line); }
+.ch-table tr.g-head td, .ch-table tr.g-mean td { border-left: 0; }
+
+.editing .ch-table-wrap { border-color: var(--accent); }
+.ch-table input { width: 5.5em; }
+.ch-table input.txt { width: 100%; min-width: 120px; }
+.ch-table input.short { min-width: 70px; width: 6em; }
+.ch-table input.tiny { min-width: 36px; width: 3em; text-align: center; }
+.ch-table input.strong { border-color: #4a5560; }
+.ch-table select {
+  font: 12px var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 4px;
+}
+.ch-table .del { background: transparent; border: 1px solid var(--line); color: var(--ink-3); border-radius: 4px; cursor: pointer; padding: 3px 8px; }
+.ch-table .del:hover { color: #e5484d; border-color: #e5484d; }
+
+@media (max-width: 860px) {
+  .ch-body { grid-template-columns: 1fr; }
+  .ch-chart { height: 360px; flex: none; }
+  .ch-table-wrap { max-height: 70vh; }
+}
+
+/* CPs selecionados para quantificação de fase sigma */
+.ch-table th.c-sig { color: var(--accent); }
+.ch-table td.c-sig { text-align: center; }
+.ch-table tr.quant td { background: rgba(246, 98, 31, .06) !important; }
+.ch-table .qtag {
+  display: inline-block; font-family: var(--mono); font-size: 12px; color: var(--ink);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 2px 9px;
+}
+.ch-table .qinfo { font-style: normal; color: var(--ink-2); margin-left: 6px; }
+.ch-table .qinfo b { color: var(--ink); }
+.ch-table .qinfo.nd { color: var(--ink-3); }
+
+/* Obs.: micrografia + quantificação do CP */
+.ch-table td.c-sit { min-width: 220px; }
+.micro { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mthumb {
+  position: relative; width: 64px; height: 64px; padding: 0; cursor: zoom-in;
+  background: #000; border: 1px solid var(--line); border-radius: 3px; overflow: hidden;
+}
+.mthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mthumb span {
+  position: absolute; left: 0; right: 0; bottom: 0; font: 9px var(--mono); color: var(--ink);
+  background: rgba(14,17,20,.8); padding: 1px 3px; text-align: center;
+}
+.mthumb:hover, .mthumb:focus-visible { border-color: var(--accent); outline: none; }
+.micro-v { font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-left: 4px; line-height: 1.4; }
+.micro-v b { color: var(--ink); font-weight: 500; }
+.obs-txt { display: block; margin-top: 4px; }
+
+/* gráfico em fundo branco, com textos maiores (mesmo padrão da tração) */
+#ch-chart { background: #fff; border-color: #d5dadf; }
+#ch-chart .ax text { font-size: 13px; fill: #4a5560; }
+#ch-chart .ax .ttl, #ch-chart text.ttl { font-size: 15px; fill: #1f262d; font-weight: 500; }
+#ch-chart .grid { stroke: #e6e9ec; }
+#ch-chart .base { stroke: #8a949d; }
+#ch-chart .lbl { font-size: 13px; fill: #1f262d; font-weight: 500; }
+#ch-chart .dim { opacity: .18; }
+
+/* ===== zoom do gráfico de transição ===== */
+#ch-chart svg { cursor: crosshair; touch-action: pan-y; user-select: none; }
+#ch-chart .hit { cursor: pointer; }
+.ch-zoom { position: absolute; top: 10px; right: 12px; display: flex; gap: 4px; z-index: 3; }
+.ch-zoom button {
+  font-family: var(--mono); font-size: 13px; line-height: 1; min-width: 30px; height: 28px; padding: 0 8px;
+  background: #fff; color: #1f262d; border: 1px solid #c9d0d6; border-radius: 4px; cursor: pointer;
+}
+.ch-zoom button:hover, .ch-zoom button:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+.ch-zoom button[data-z="reset"] { font-size: 11px; letter-spacing: .04em; }
+#ch-chart:not(.zoomed) .ch-zoom button[data-z="reset"] { opacity: .45; }
+.ch-zbox { position: absolute; z-index: 2; pointer-events: none; border: 1px dashed var(--accent); background: rgba(246, 98, 31, .08); }
