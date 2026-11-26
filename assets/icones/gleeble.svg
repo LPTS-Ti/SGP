@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" stroke="#e8ecef" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+  <!-- ciclo térmico -->
+  <path d="M30 20 V92 H210" stroke-width="3"/>
+  <path d="M34 84 C70 84 76 30 96 30 C114 30 120 70 150 76 C176 80 190 82 206 82" stroke-width="4.5"/>
+  <path d="M96 30 v54" stroke-dasharray="3 6" stroke-width="2.5"/>
+  <text x="24" y="16" fill="#e8ecef" stroke="none" font-family="Arial, sans-serif" font-size="16">T</text>
+  <text x="212" y="108" fill="#e8ecef" stroke="none" font-family="Arial, sans-serif" font-size="16">t</text>
+  <!-- garras de cobre e corpo de prova -->
+  <path d="M18 132 h56 v86 h-56 z" fill="#e8ecef" fill-opacity=".22"/>
+  <path d="M166 132 h56 v86 h-56 z" fill="#e8ecef" fill-opacity=".22"/>
+  <path d="M74 146 h22 v58 h-22 M166 146 h-22 v58 h22" fill="#e8ecef" fill-opacity=".4"/>
+  <rect x="96" y="164" width="48" height="22" rx="3" fill="#e8ecef" fill-opacity=".12"/>
+  <path d="M108 164 v22 M120 164 v22 M132 164 v22" stroke-width="2" stroke-opacity=".5"/>
+  <!-- aquecimento resistivo e termopar -->
+  <path d="M104 156 c-6 -8 6 -12 0 -20 M120 156 c-6 -8 6 -12 0 -20 M136 156 c-6 -8 6 -12 0 -20" stroke-width="3"/>
+  <path d="M120 186 v20 c0 8 10 8 10 16" stroke-width="2.5"/>
+  <circle cx="120" cy="186" r="3.5" fill="#e8ecef"/>
+  <path d="M30 218 v12 M210 218 v12" stroke-width="3"/>
+</svg>
