@@ -30,17 +30,23 @@
     clear() { try { localStorage.removeItem(KEY); } catch (e) {} },
   };
   const EDIT = ['largura', 'espessura', 'Lc', 'A', 'obs'];
-  // só os campos editáveis ficam no navegador; o resto vem sempre do arquivo
+  // só os campos editáveis ficam no navegador; o resto vem sempre do arquivo.
+  // Cada edição local guarda também o valor do arquivo na hora em que foi feita ("orig"):
+  // se o arquivo mudar depois (importador ou correção), vale o valor novo do arquivo.
   function carregar() {
     const d = clone(base), loc = store.get();
-    if (loc && loc.cps) loc.cps.forEach(l => { const c = d.cps.find(x => x.cp === l.cp); if (c) EDIT.forEach(k => { if (k in l) c[k] = l[k]; }); });
+    if (!loc || !loc.cps || !loc.orig) { if (loc) store.clear(); return d; }   // formato antigo: descartado
+    loc.cps.forEach(l => {
+      const c = d.cps.find(x => x.cp === l.cp), o = loc.orig.find(x => x.cp === l.cp);
+      if (!c || !o) return;
+      EDIT.forEach(k => { if (k in l && JSON.stringify(o[k]) === JSON.stringify(c[k])) c[k] = l[k]; });
+    });
     return d;
   }
   let data = carregar();
   const alvos = () => [...new Set(data.cps.map(c => c.alvo))].sort((a, b) => a - b);
 
   const filtro = { alvos: new Set(alvos()), dir: 'ambas', complac: false };
-  let vista = 'ss';            // ss: tensão × deformação · el: região elástica · fd: força × deslocamento
   let destaque = null;         // CP destacado
   let editing = false;
 
@@ -133,7 +139,7 @@
           ${['ambas', 'L', 'C'].map(o => `<button type="button" class="chip ${filtro.dir === o ? 'on' : ''}" data-f="dir" data-v="${o}">
               ${o === 'ambas' ? 'Ambas' : `<svg class="ls" viewBox="0 0 26 10" aria-hidden="true"><line x1="1" y1="5" x2="25" y2="5" stroke-dasharray="${DIR[o].dash}"/></svg>${DIR[o].nome}`}</button>`).join('')}
         </div>
-        ${noGrafico && temLc ? `<div class="f-grp"><label class="chk"><input type="checkbox" data-f="complac" ${filtro.complac ? 'checked' : ''}> Corrigir complacência da máquina</label></div>` : ''}`;
+`;
     });
   }
   document.addEventListener('click', (e) => {
@@ -157,109 +163,194 @@
     filtro.complac = i.checked;
     tudo();
   });
+  /* ---------- gráficos: extensômetro (σ × ε) e máquina (σ × deslocamento) ----------
+   * Cada pasta da MTS tem dois arquivos: "(Timed).txt", com o extensômetro montado (até a pausa),
+   * e "(Timed)1.txt", depois da retirada, só com o atuador. O importador junta os dois;
+   * n_ext marca onde termina o trecho com extensômetro.
+   *   ext: tensão × deformação, só com os dados do extensômetro
+   *   maq: tensão × deslocamento do atuador, o ensaio inteiro até a ruptura
+   * Exibir: só um, só o outro ou os dois (extensômetro em cima, máquina embaixo).
+   *
+   * Zoom (cada gráfico tem o seu):
+   *   roda do mouse: amplia/reduz mantendo fixo o ponto sob o cursor
+   *   arrastar (com zoom): move a área ampliada · Shift+arrastar: amplia a área selecionada
+   *   duplo clique ou "Ajustar": volta a 100 % · botões + / −
+   *   limites: de 100 % (vista inteira) até ZOOM_MAX em cada eixo
+   */
+  const ZOOM_MAX = 50;
+  const GRAF = {
+    ext: { id: 'tr-chart', svg: 'tr-svg', zoom: null, escala: null, pontos: [] },
+    maq: { id: 'tr-chart-maq', svg: 'tr-svg-maq', zoom: null, escala: null, pontos: [] },
+  };
+  let exibir = 'ambos';
+  let arrastou = false;          // fim de um arraste não conta como clique (destaque)
+  const visiveis = () => exibir === 'ambos' ? ['ext', 'maq'] : [exibir];
+  const tipDe = (k) => $(GRAF[k].id).querySelector('.ch-tip');
+
+  function aplicarExibir() {
+    document.querySelectorAll('#tr-exibir button[data-x]').forEach(b => {
+      const on = b.dataset.x === exibir;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+    });
+    for (const k in GRAF) $(GRAF[k].id).hidden = !visiveis().includes(k);
+  }
   document.addEventListener('click', (e) => {
-    const b = e.target.closest('#tr-vistas button[data-v]');
+    const b = e.target.closest('#tr-exibir button[data-x]');
     if (!b) return;
-    vista = b.dataset.v;
-    zoom = null;
-    document.querySelectorAll('#tr-vistas button').forEach(x => x.classList.toggle('on', x === b));
+    exibir = b.dataset.x;
+    aplicarExibir();
     renderGrafico();
   });
 
-  /* ---------- zoom do gráfico ----------
-   * roda do mouse: zoom em torno do cursor · arrastar: zoom na área · Shift+arrastar: mover
-   * duplo clique ou "Ajustar": volta à vista inteira · botões + / − no canto */
-  let zoom = null;        // {x0, x1, y0, y1} em unidades dos dados; null = vista inteira
-  let escala = null;      // última escala desenhada (para converter pixels ↔ dados)
-  let arrastou = false;   // evita que o fim de um arraste conte como clique (destaque)
-  const paraDados = (px, py) => ({
-    x: escala.X0 + (px - escala.M.l) / escala.iw * (escala.X1 - escala.X0),
-    y: escala.Y0 + (escala.M.t + escala.ih - py) / escala.ih * (escala.Y1 - escala.Y0),
-  });
-  function aplicarZoom(z) {
-    const b = escala.base;
-    // além da vista inteira não faz sentido: volta a ela
-    if (z.x1 - z.x0 >= b.X1 * .999 && z.y1 - z.y0 >= b.Y1 * .999) { zoom = null; renderGrafico(); return; }
-    const w = Math.min(z.x1 - z.x0, b.X1), h = Math.min(z.y1 - z.y0, b.Y1);
-    let x0 = Math.min(Math.max(z.x0, 0), b.X1 - w), y0 = Math.min(Math.max(z.y0, 0), b.Y1 - h);
-    zoom = { x0, x1: x0 + w, y0, y1: y0 + h };
-    renderGrafico();
+  /* ----- zoom ----- */
+  const limitar = (v, a, b) => Math.min(Math.max(v, a), b);
+  const paraDados = (G, px, py) => {
+    const s = G.escala;
+    return { x: s.X0 + (px - s.M.l) / s.iw * (s.X1 - s.X0), y: s.Y0 + (s.M.t + s.ih - py) / s.ih * (s.Y1 - s.Y0) };
+  };
+  function aplicarZoom(k, z) {
+    const G = GRAF[k], b = G.escala.base, W = b.X1 - b.X0, H = b.Y1 - b.Y0;
+    const w = limitar(z.x1 - z.x0, W / ZOOM_MAX, W), h = limitar(z.y1 - z.y0, H / ZOOM_MAX, H);
+    if (w >= W * .999 && h >= H * .999) { G.zoom = null; desenhar(k); return; }
+    // a área ampliada nunca sai da vista inteira (os dados não somem da tela)
+    const x0 = limitar(z.x0, b.X0, b.X1 - w), y0 = limitar(z.y0, b.Y0, b.Y1 - h);
+    G.zoom = { x0, x1: x0 + w, y0, y1: y0 + h };
+    desenhar(k);
   }
-  function zoomEm(cx, cy, f) {      // f < 1 aproxima, f > 1 afasta; (cx, cy) em dados
-    const { X0, X1, Y0, Y1 } = escala;
-    aplicarZoom({ x0: cx - (cx - X0) * f, x1: cx + (X1 - cx) * f, y0: cy - (cy - Y0) * f, y1: cy + (Y1 - cy) * f });
+  // f < 1 amplia, f > 1 reduz; (cx, cy), em unidades dos dados, fica parado na tela
+  function zoomEm(k, cx, cy, f) {
+    const s = GRAF[k].escala, b = s.base, W = b.X1 - b.X0, H = b.Y1 - b.Y0;
+    const w0 = s.X1 - s.X0, h0 = s.Y1 - s.Y0;
+    const fx = limitar(w0 * f, W / ZOOM_MAX, W) / w0, fy = limitar(h0 * f, H / ZOOM_MAX, H) / h0;
+    aplicarZoom(k, { x0: cx - (cx - s.X0) * fx, x1: cx + (s.X1 - cx) * fx, y0: cy - (cy - s.Y0) * fy, y1: cy + (s.Y1 - cy) * fy });
   }
-  const dentroDoPlot = (mx, my) => escala && mx >= escala.M.l && mx <= escala.M.l + escala.iw && my >= escala.M.t && my <= escala.M.t + escala.ih;
+  const zerarZoom = (k) => { GRAF[k].zoom = null; desenhar(k); };
+  const dentroDoPlot = (G, mx, my) => {
+    const s = G.escala;
+    return s && mx >= s.M.l && mx <= s.M.l + s.iw && my >= s.M.t && my <= s.M.t + s.ih;
+  };
 
-  (function ligarZoom() {
-    const box = document.getElementById('tr-chart');
+  function ligarZoom(k) {
+    const G = GRAF[k], box = $(G.id);
     const ctl = document.createElement('div');
     ctl.className = 'tr-zoom';
-    ctl.innerHTML = '<button type="button" data-z="in" title="Aproximar" aria-label="Aproximar">+</button>' +
+    ctl.innerHTML = '<span class="tr-zpct" title="Ampliação atual">100%</span>' +
+      '<button type="button" data-z="in" title="Aproximar" aria-label="Aproximar">+</button>' +
       '<button type="button" data-z="out" title="Afastar" aria-label="Afastar">−</button>' +
-      '<button type="button" data-z="reset" title="Ver o gráfico inteiro (ou duplo clique)">Ajustar</button>';
+      '<button type="button" data-z="reset" title="Voltar a 100 % (ou duplo clique no gráfico)">Ajustar</button>';
     box.appendChild(ctl);
     const zbox = document.createElement('div');
     zbox.className = 'tr-zbox'; zbox.hidden = true;
     box.appendChild(zbox);
+    // posição do cursor no sistema do SVG (descontando a borda da caixa e a escala do viewBox)
+    const svg = $(G.svg);
+    const pos = (e) => {
+      const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      const sx = vb && vb.width && r.width ? vb.width / r.width : 1, sy = vb && vb.height && r.height ? vb.height / r.height : 1;
+      return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
+    };
 
     ctl.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-z]');
-      if (!b || !escala) return;
+      if (!b || !G.escala) return;
       e.stopPropagation();
-      if (b.dataset.z === 'reset') { zoom = null; renderGrafico(); return; }
-      zoomEm((escala.X0 + escala.X1) / 2, (escala.Y0 + escala.Y1) / 2, b.dataset.z === 'in' ? .6 : 1 / .6);
+      if (b.dataset.z === 'reset') { zerarZoom(k); return; }
+      zoomEm(k, (G.escala.X0 + G.escala.X1) / 2, (G.escala.Y0 + G.escala.Y1) / 2, b.dataset.z === 'in' ? .6 : 1 / .6);
     });
     box.addEventListener('wheel', (e) => {
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      if (!dentroDoPlot(mx, my)) return;
+      const [mx, my] = pos(e);
+      if (!dentroDoPlot(G, mx, my)) return;
       e.preventDefault();
-      const p = paraDados(mx, my);
-      zoomEm(p.x, p.y, e.deltaY < 0 ? .8 : 1.25);
+      const p = paraDados(G, mx, my);
+      zoomEm(k, p.x, p.y, e.deltaY < 0 ? .85 : 1 / .85);
     }, { passive: false });
-    box.addEventListener('dblclick', (e) => { if (e.target.closest('.tr-zoom')) return; zoom = null; renderGrafico(); });
+    box.addEventListener('dblclick', (e) => { if (!e.target.closest('.tr-zoom')) zerarZoom(k); });
 
-    let ini = null;   // {mx, my, pan, z}
+    let ini = null;   // {mx, my, modo: 'pan' | 'area' | 'clique', z}
     box.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || e.pointerType === 'touch' || e.target.closest('.tr-zoom')) return;
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      if (!dentroDoPlot(mx, my)) return;
-      ini = { mx, my, pan: e.shiftKey && !!zoom, z: { X0: escala.X0, X1: escala.X1, Y0: escala.Y0, Y1: escala.Y1 } };
+      const [mx, my] = pos(e);
+      if (!dentroDoPlot(G, mx, my)) return;
+      const s = G.escala;
+      ini = { mx, my, modo: e.shiftKey ? 'area' : G.zoom ? 'pan' : 'clique', z: { X0: s.X0, X1: s.X1, Y0: s.Y0, Y1: s.Y1 } };
       arrastou = false;
-      box.setPointerCapture(e.pointerId);
+      if (ini.modo !== 'clique') box.setPointerCapture(e.pointerId);
     });
     box.addEventListener('pointermove', (e) => {
-      if (!ini) return;
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      if (Math.abs(mx - ini.mx) + Math.abs(my - ini.my) > 6) arrastou = true;
+      if (!ini || ini.modo === 'clique') return;
+      const [mx, my] = pos(e);
+      if (Math.abs(mx - ini.mx) + Math.abs(my - ini.my) > 4) arrastou = true;
       if (!arrastou) return;
-      tipEl().hidden = true;
-      if (ini.pan) {
-        const z = ini.z, dx = (mx - ini.mx) / escala.iw * (z.X1 - z.X0), dy = (my - ini.my) / escala.ih * (z.Y1 - z.Y0);
-        aplicarZoom({ x0: z.X0 - dx, x1: z.X1 - dx, y0: z.Y0 + dy, y1: z.Y1 + dy });
+      tipDe(k).hidden = true;
+      if (ini.modo === 'pan') {
+        box.classList.add('panning');
+        const z = ini.z, s = G.escala;
+        const dx = (mx - ini.mx) / s.iw * (z.X1 - z.X0), dy = (my - ini.my) / s.ih * (z.Y1 - z.Y0);
+        aplicarZoom(k, { x0: z.X0 - dx, x1: z.X1 - dx, y0: z.Y0 + dy, y1: z.Y1 + dy });
         return;
       }
-      const { M, iw, ih } = escala;
-      const cx = Math.min(Math.max(mx, M.l), M.l + iw), cy = Math.min(Math.max(my, M.t), M.t + ih);
+      const { M, iw, ih } = G.escala;
+      const cx = limitar(mx, M.l, M.l + iw), cy = limitar(my, M.t, M.t + ih);
       Object.assign(zbox.style, { left: Math.min(ini.mx, cx) + 'px', top: Math.min(ini.my, cy) + 'px',
         width: Math.abs(cx - ini.mx) + 'px', height: Math.abs(cy - ini.my) + 'px' });
       zbox.hidden = false;
     });
     const fim = (e) => {
       if (!ini) return;
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      if (arrastou && !ini.pan && Math.abs(mx - ini.mx) > 8 && Math.abs(my - ini.my) > 8) {
-        const a = paraDados(ini.mx, ini.my), b = paraDados(mx, my);
-        aplicarZoom({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y) });
+      const [mx, my] = pos(e);
+      if (ini.modo === 'area' && arrastou && Math.abs(mx - ini.mx) > 8 && Math.abs(my - ini.my) > 8) {
+        const a = paraDados(G, ini.mx, ini.my), b = paraDados(G, mx, my);
+        aplicarZoom(k, { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y) });
       }
       zbox.hidden = true;
+      box.classList.remove('panning');
       ini = null;
     };
     box.addEventListener('pointerup', fim);
-    box.addEventListener('pointercancel', () => { zbox.hidden = true; ini = null; });
-  })();
+    box.addEventListener('pointercancel', () => { zbox.hidden = true; box.classList.remove('panning'); ini = null; });
 
-  /* ---------- gráfico ---------- */
+    // dica: ponto mais próximo do cursor
+    box.addEventListener('pointermove', (e) => {
+      if (ini && ini.modo !== 'clique') return;
+      const [mx, my] = pos(e), t = tipDe(k);
+      let best = null, bd = 18 * 18;
+      G.pontos.forEach(p => { if (destaque && destaque !== p.s.c.cp) return; const d = (p.X - mx) ** 2 + (p.Y - my) ** 2; if (d < bd) { bd = d; best = p; } });
+      if (!best) { t.hidden = true; return; }
+      const { s, i } = best, c = s.c, cv = CURVAS[c.cp];
+      t.innerHTML = `<b>${esc(c.cp)}</b> · ${esc(grupoNome(grupo(c)))}<br>` + (k === 'ext'
+        ? `ε <span class="tv">${br(s.xs[i], 3)} %</span> · σ <span class="tv">${br(s.ys[i], 0)} MPa</span><br>Rp0,2 ${br(s.p.Rp02, 0)} MPa · E ${br(s.p.E, 1)} GPa`
+        : `δ <span class="tv">${br(cv.d[i], 3)} mm</span> · σ <span class="tv">${br(s.ys[i], 0)} MPa</span><br>F ${br(cv.F[i], 2)} kN · t = ${br(cv.t[i], 1)} s${i >= cv.n_ext ? ' · sem extensômetro' : ''}`);
+      t.hidden = false;
+      t.style.left = limitar(best.X, 100, box.clientWidth - 100) + 'px';
+      t.style.top = best.Y + 'px';
+    });
+    box.addEventListener('pointerleave', () => { tipDe(k).hidden = true; });
+
+    // clique: destaca o CP mais próximo (ou o do rótulo); clicar de novo desfaz
+    box.addEventListener('click', (e) => {
+      if (arrastou) { arrastou = false; return; }
+      if (e.target.closest('.tr-zoom')) return;
+      const lbl = e.target.closest('text[data-cp]');
+      if (lbl) { destaque = destaque === lbl.dataset.cp ? null : lbl.dataset.cp; renderGrafico(); return; }
+      const [mx, my] = pos(e);
+      let best = null, bd = 18 * 18;
+      G.pontos.forEach(p => { const d = (p.X - mx) ** 2 + (p.Y - my) ** 2; if (d < bd) { bd = d; best = p; } });
+      destaque = best && destaque !== best.s.c.cp ? best.s.c.cp : null;
+      renderGrafico();
+    });
+  }
+
+  // grupo na tabela de médias: isola o grupo (ou destaca o CP, se for um só)
+  document.addEventListener('click', (e) => {
+    const linha = e.target.closest('#tr-mean tr[data-g]');
+    if (!linha) return;
+    const cps = data.cps.filter(c => visivel(c) && grupo(c) === linha.dataset.g);
+    destaque = cps.length === 1 ? (destaque === cps[0].cp ? null : cps[0].cp) : null;
+    if (cps.length > 1) { filtro.alvos = new Set([cps[0].alvo]); filtro.dir = cps[0].dir; }
+    tudo();
+  });
+
+  /* ----- desenho ----- */
   const svgEl = (tag, attrs = {}, parent) => {
     const el = document.createElementNS(NS, tag);
     for (const k in attrs) el.setAttribute(k, attrs[k]);
@@ -271,236 +362,171 @@
     return (m >= 5 ? 5 : m >= 2 ? 2 : 1) * p;
   };
 
-  let pontosHover = [];   // [{x, y, c, i}] em coordenadas de tela, para a dica
-
   function renderGrafico() {
-    const svg = $('tr-svg'), box = $('tr-chart');
+    aplicarExibir();
+    visiveis().forEach(desenhar);
+    const nota = $('tr-nota');
+    nota.innerHTML = [
+      visiveis().includes('ext') && '<b>Extensômetro:</b> ◆ Rp0,2 · <span class="prop-leg">╌ linha de proporcionalidade (módulo E)</span> · clique num CP para ver a reta deslocada de 0,2 %',
+      visiveis().includes('maq') && '<b>Máquina:</b> ○ retirada do extensômetro · ■ força máxima (Rm) · ensaio completo até a ruptura',
+    ].filter(Boolean).join('<br>') +
+      '<br><span class="tr-zoom-dica">Zoom: roda do mouse sobre o ponto desejado · arrastar move o gráfico ampliado · Shift+arrastar amplia uma área · duplo clique ou "Ajustar" volta a 100 %</span>';
+    renderMedias();
+  }
+
+  function desenhar(k) {
+    const G = GRAF[k], box = $(G.id), svg = $(G.svg);
     const W = box.clientWidth, H = box.clientHeight;
-    if (!W || !H) return;
+    if (!W || !H || box.hidden) return;
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.innerHTML = '';
-    pontosHover = [];
+    G.pontos = [];
     const cps = data.cps.filter(visivel);
-    const M = { l: 72, r: 76, t: 16, b: 54 };
+    const M = { l: 72, r: 76, t: 34, b: 54 };
     const iw = W - M.l - M.r, ih = H - M.t - M.b;
+    const ext = k === 'ext';
 
-    // séries no sistema da vista
+    // séries: σ = F/S0; x = ε do extensômetro (só o trecho com ele) ou δ do atuador (ensaio inteiro)
     const series = cps.map(c => {
-      const cv = CURVAS[c.cp], S0 = area(c), u = unificada(c), n = cv.n_ext;
-      let xs, ys, nMed;
-      if (vista === 'fd') { xs = cv.d; ys = cv.F; nMed = cv.d.length; }
-      else {
-        const s = cv.F.map(f => f * 1000 / S0);
-        if (u) { xs = u.e; ys = s; nMed = n; }
-        else { xs = cv.e.slice(0, n); ys = s.slice(0, n); nMed = n; }
-      }
-      return { c, xs, ys, nMed, u, p: props(c) };
+      const cv = CURVAS[c.cp], S0 = area(c), n = cv.n_ext;
+      const sig = cv.F.map(f => f * 1000 / S0);
+      return ext
+        ? { c, xs: cv.e.slice(0, n), ys: sig.slice(0, n), p: props(c) }
+        : { c, xs: cv.d, ys: sig, p: props(c) };
     });
 
-    let X1, Y1;
-    if (vista === 'el') {
-      X1 = 1.0;
-      Y1 = Math.max(100, ...series.map(s => (s.p.Rp02 || 0) * 1.25));
-    } else {
-      X1 = Math.max(0.1, ...series.map(s => Math.max(...s.xs)));
-      Y1 = Math.max(1, ...series.map(s => Math.max(...s.ys)));
-      X1 *= 1.03; Y1 *= 1.08;
-    }
-    // vista inteira (base do zoom)
-    let px = passoBom(X1, Math.max(3, Math.min(8, iw / 75))), py = passoBom(Y1, Math.max(4, Math.min(8, ih / 50)));
+    // vista inteira (100 %)
+    let X1 = Math.max(ext ? 0.1 : 1, ...series.map(s => Math.max(...s.xs))) * 1.03;
+    let Y1 = Math.max(100, ...series.map(s => Math.max(...s.ys))) * 1.08;
+    let px = passoBom(X1, Math.max(3, Math.min(10, iw / 75))), py = passoBom(Y1, Math.max(4, Math.min(8, ih / 45)));
     X1 = Math.ceil(X1 / px) * px; Y1 = Math.ceil(Y1 / py) * py;
-    const base = { X1, Y1 };
+    const base = { X0: 0, X1, Y0: 0, Y1 };
     let X0 = 0, Y0 = 0;
-    if (zoom) {
-      ({ x0: X0, x1: X1, y0: Y0, y1: Y1 } = zoom);
-      px = passoBom(X1 - X0, Math.max(3, Math.min(8, iw / 75)));
-      py = passoBom(Y1 - Y0, Math.max(4, Math.min(8, ih / 50)));
+    if (G.zoom) {
+      ({ x0: X0, x1: X1, y0: Y0, y1: Y1 } = G.zoom);
+      px = passoBom(X1 - X0, Math.max(3, Math.min(10, iw / 75)));
+      py = passoBom(Y1 - Y0, Math.max(4, Math.min(8, ih / 45)));
     }
-    escala = { M, iw, ih, X0, X1, Y0, Y1, base };
-    if ($('tr-tip')) $('tr-tip').hidden = true;
-    $('tr-chart').classList.toggle('zoomed', !!zoom);
+    G.escala = { M, iw, ih, X0, X1, Y0, Y1, base };
+    tipDe(k).hidden = true;
+    box.classList.toggle('zoomed', !!G.zoom);
+    const pct = Math.round(Math.max(base.X1 / (X1 - X0), base.Y1 / (Y1 - Y0)) * 100);
+    const zp = box.querySelector('.tr-zpct'); if (zp) zp.textContent = pct + '%';
     const x = (v) => M.l + (v - X0) / (X1 - X0) * iw, y = (v) => M.t + ih - (v - Y0) / (Y1 - Y0) * ih;
 
+    // eixos
     const g0 = svgEl('g', { class: 'ax' }, svg);
     const casas = (p) => p >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(p) - 1e-9));
     const dx = casas(px), dy = casas(py);
-    for (let k = Math.ceil(Y0 / py - 1e-9); k * py <= Y1 + 1e-9; k++) {
-      const v = (k * py) || 0;
+    for (let j = Math.ceil(Y0 / py - 1e-9); j * py <= Y1 + 1e-9; j++) {
+      const v = (j * py) || 0;
       svgEl('line', { x1: M.l, x2: M.l + iw, y1: y(v), y2: y(v), class: Math.abs(v) < 1e-9 ? 'base' : 'grid' }, g0);
       svgEl('text', { x: M.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, g0).textContent = br(v, dy);
     }
     if (Y0 > 0) svgEl('line', { x1: M.l, x2: M.l + iw, y1: M.t + ih, y2: M.t + ih, class: 'base' }, g0);
-    for (let k = Math.ceil(X0 / px - 1e-9); k * px <= X1 + 1e-9; k++) {
-      const v = (k * px) || 0;
+    for (let j = Math.ceil(X0 / px - 1e-9); j * px <= X1 + 1e-9; j++) {
+      const v = (j * px) || 0;
       svgEl('line', { x1: x(v), x2: x(v), y1: M.t + ih, y2: M.t + ih + 5, class: 'base' }, g0);
       svgEl('text', { x: x(v), y: M.t + ih + 23, 'text-anchor': 'middle' }, g0).textContent = br(v, dx);
     }
-    const tx = { ss: 'Deformação de engenharia (%)', el: 'Deformação de engenharia (%) · extensômetro', fd: 'Deslocamento do atuador (mm)' }[vista];
-    const ty = vista === 'fd' ? 'Força (kN)' : 'Tensão de engenharia (MPa)';
-    svgEl('text', { x: M.l + iw / 2, y: H - 6, 'text-anchor': 'middle', class: 'ttl' }, g0).textContent = tx;
-    svgEl('text', { x: 16, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 16 ${M.t + ih / 2})` }, g0).textContent = ty;
+    svgEl('text', { x: M.l + iw / 2, y: H - 6, 'text-anchor': 'middle', class: 'ttl' }, g0).textContent =
+      ext ? 'Deformação de engenharia (%) · extensômetro' : 'Deslocamento do atuador (mm) · dados da máquina';
+    svgEl('text', { x: 16, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 16 ${M.t + ih / 2})` }, g0).textContent = 'Tensão de engenharia (MPa)';
 
     if (!series.length) {
       svgEl('text', { x: M.l + iw / 2, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl' }, svg).textContent = 'Nenhum CP com os filtros atuais';
-      renderMedias(); return;
+      return;
     }
 
-    const clip = svgEl('clipPath', { id: 'tr-clip' }, svgEl('defs', {}, svg));
+    const clipId = `tr-clip-${k}`;
+    const clip = svgEl('clipPath', { id: clipId }, svgEl('defs', {}, svg));
     svgEl('rect', { x: M.l, y: M.t - 4, width: iw + 4, height: ih + 4 }, clip);
     const dim = (c) => destaque && destaque !== c.cp ? ' dim' : '';
-    const path = (xs, ys, i0, i1) => {
-      let d = '';
-      for (let i = i0; i < i1; i++) d += (i === i0 ? 'M' : 'L') + x(xs[i]).toFixed(1) + ',' + y(ys[i]).toFixed(1);
-      return d;
-    };
+    const path = (xs, ys) => xs.map((v, i) => (i ? 'L' : 'M') + x(v).toFixed(1) + ',' + y(ys[i]).toFixed(1)).join('');
+    const naVista = (s, i) => s.xs[i] >= X0 && s.xs[i] <= X1 && s.ys[i] >= Y0 && s.ys[i] <= Y1;
     const rot = [];
-    // o destacado é desenhado por último (por cima)
+
     series.slice().sort((a, b) => (a.c.cp === destaque) - (b.c.cp === destaque)).forEach(s => {
-      const { c, xs, ys, nMed } = s, cor = corDe(c), dash = DIR[c.dir]?.dash || '';
-      const g = svgEl('g', { class: 'serie' + dim(c), 'data-cp': c.cp, 'clip-path': 'url(#tr-clip)' }, svg);
-      const larg = destaque === c.cp ? 2.6 : 1.8;
-      // trecho medido (extensômetro, ou força × deslocamento inteiro)
-      svgEl('path', { d: path(xs, ys, 0, Math.min(nMed, xs.length)), fill: 'none', stroke: cor, 'stroke-width': larg, 'stroke-dasharray': dash, 'stroke-linejoin': 'round' }, g);
-      // trecho estimado pelo atuador
-      if (vista === 'ss' && s.u) {
-        svgEl('path', { d: path(xs, ys, nMed - 1, xs.length), fill: 'none', stroke: cor, 'stroke-width': larg - .4, 'stroke-dasharray': dash, opacity: .45, 'stroke-linejoin': 'round' }, g);
-      }
-      // referência: último ponto confiável do extensômetro (antes da pausa)
+      const { c, xs, ys } = s, cor = corDe(c), dash = DIR[c.dir]?.dash || '';
       const cv = CURVAS[c.cp], r = cv.n_ext - 1;
-      if (vista === 'fd' || (vista === 'ss' && s.u)) {
-        const rx = vista === 'fd' ? cv.d[r] : s.u.e[r], ry = vista === 'fd' ? cv.F[r] : cv.F[r] * 1000 / s.p.S0;
-        svgEl('circle', { cx: x(rx), cy: y(ry), r: 3.5, fill: FUNDO, stroke: cor, 'stroke-width': 1.5 }, g);
+      const g = svgEl('g', { class: 'serie' + dim(c), 'data-cp': c.cp, 'clip-path': `url(#${clipId})` }, svg);
+      const larg = destaque === c.cp ? 2.6 : 1.8;
+      svgEl('path', { d: path(xs, ys), fill: 'none', stroke: cor, 'stroke-width': larg, 'stroke-dasharray': dash, 'stroke-linejoin': 'round' }, g);
+
+      if (ext) {
+        // linha de proporcionalidade (σ = E·ε + b) e Rp0,2
+        if (s.p.E && s.p.Rp02) {
+          const E = s.p.E * 1000 / 100, b = (c.calc.E_b || 0) * (c.calc.S0 / s.p.S0);   // MPa por %
+          const sTop = s.p.Rp02 * 1.15;
+          svgEl('line', { x1: x(Math.max(0, -b / E)), y1: y(Math.max(0, b)), x2: x((sTop - b) / E), y2: y(sTop),
+            stroke: cor, 'stroke-width': destaque === c.cp ? 1.6 : 1.1, 'stroke-dasharray': '5 4', opacity: .8, class: 'prop' }, g);
+          // CP destacado (ou único): reta deslocada de 0,2 % e janela do ajuste de E
+          if (destaque === c.cp || series.length === 1) {
+            const ge = svgEl('g', { 'clip-path': `url(#${clipId})` }, svg);
+            svgEl('line', { x1: x(0.2 - b / E), y1: y(0), x2: x(0.2 + (sTop - b) / E), y2: y(sTop), stroke: '#3a444d', 'stroke-width': 1.2, 'stroke-dasharray': '4 3' }, ge);
+            const jx = c.calc.E_janela_MPa, kS = c.calc.S0 / s.p.S0;
+            [jx[0] * kS, jx[1] * kS].forEach(v => svgEl('line', { x1: M.l, x2: M.l + iw, y1: y(v), y2: y(v), stroke: '#8a949d', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, ge));
+            svgEl('text', { x: M.l + iw - 4, y: y(jx[1] * kS) - 5, 'text-anchor': 'end', class: 'note' }, ge).textContent = `janela do ajuste de E: ${jx[0]}–${jx[1]} MPa`;
+            svgEl('text', { x: x(0.2 + (sTop * .55 - b) / E) + 8, y: y(sTop * .55), class: 'note' }, ge).textContent = 'reta deslocada 0,2 %';
+          }
+        }
+        if (s.p.Rp02 && c.calc.Rp02_def != null) {
+          svgEl('path', { d: `M${x(c.calc.Rp02_def)},${y(s.p.Rp02) - 5}l5,5l-5,5l-5,-5z`, fill: cor, stroke: FUNDO, 'stroke-width': 1 }, g);
+        }
+      } else {
+        // retirada do extensômetro (fim do 1º arquivo) e força máxima
+        svgEl('circle', { cx: x(cv.d[r]), cy: y(ys[r]), r: 3.5, fill: FUNDO, stroke: cor, 'stroke-width': 1.5 }, g);
+        let im = 0; ys.forEach((v, i) => { if (v > ys[im]) im = i; });
+        svgEl('rect', { x: x(xs[im]) - 3.5, y: y(ys[im]) - 3.5, width: 7, height: 7, fill: cor, stroke: FUNDO, 'stroke-width': 1 }, g);
       }
-      // Rp0,2 e Fmax
-      if (vista !== 'fd' && s.p.Rp02 && c.calc.Rp02_def != null) {
-        svgEl('path', { d: `M${x(c.calc.Rp02_def)},${y(s.p.Rp02) - 5}l5,5l-5,5l-5,-5z`, fill: cor, stroke: FUNDO, 'stroke-width': 1 }, g);
-      }
-      if (vista === 'fd' || (vista === 'ss' && s.u)) {
-        const im = cv.F.indexOf(Math.max(...cv.F));
-        const mx = vista === 'fd' ? cv.d[im] : s.u.e[im], my = vista === 'fd' ? cv.F[im] : s.p.Rm;
-        svgEl('rect', { x: x(mx) - 3.5, y: y(my) - 3.5, width: 7, height: 7, fill: cor, stroke: FUNDO, 'stroke-width': 1 }, g);
-      }
-      // linha de proporcionalidade (σ = E·ε + b, ajuste do módulo E) sempre traçada na curva tensão × deformação
-      if (vista === 'ss' && s.p.E && s.p.Rp02) {
-        const E = s.p.E * 1000 / 100, b = (c.calc.E_b || 0) * (c.calc.S0 / s.p.S0);   // MPa por %
-        const sTop = s.p.Rp02 * 1.15;
-        svgEl('line', { x1: x(Math.max(0, -b / E)), y1: y(Math.max(0, b)), x2: x((sTop - b) / E), y2: y(sTop),
-          stroke: cor, 'stroke-width': destaque === c.cp ? 1.6 : 1.1, 'stroke-dasharray': '5 4', opacity: .8, class: 'prop' }, g);
-      }
-      // retas do módulo e de 0,2 % (região elástica, CP destacado ou único)
-      if (vista === 'el' && (destaque === c.cp || series.length === 1) && s.p.E && s.p.Rp02) {
-        const E = s.p.E * 1000 / 100, b = (c.calc.E_b || 0) * (c.calc.S0 / s.p.S0);   // MPa por %
-        const sTop = s.p.Rp02 * 1.15;
-        const ge = svgEl('g', { 'clip-path': 'url(#tr-clip)' }, svg);
-        svgEl('line', { x1: x(-b / E), y1: y(0), x2: x((sTop - b) / E), y2: y(sTop), stroke: '#3a444d', 'stroke-width': 1.2 }, ge);
-        svgEl('line', { x1: x(0.2 - b / E), y1: y(0), x2: x(0.2 + (sTop - b) / E), y2: y(sTop), stroke: '#3a444d', 'stroke-width': 1.2, 'stroke-dasharray': '4 3' }, ge);
-        const jx = c.calc.E_janela_MPa;
-        [jx[0] * c.calc.S0 / s.p.S0, jx[1] * c.calc.S0 / s.p.S0].forEach(v => svgEl('line', { x1: M.l, x2: M.l + iw, y1: y(v), y2: y(v), stroke: '#8a949d', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, ge));
-        svgEl('text', { x: M.l + iw - 4, y: y(jx[1] * c.calc.S0 / s.p.S0) - 5, 'text-anchor': 'end', class: 'note' }, ge).textContent = `janela do ajuste de E: ${jx[0]}–${jx[1]} MPa`;
-        svgEl('text', { x: x(0.2 + (sTop * .55 - b) / E) + 8, y: y(sTop * .55), class: 'note' }, ge).textContent = 'reta deslocada 0,2 %';
-      }
-      // pontos para a dica
+
+      // pontos para a dica e o clique
       const step = Math.max(1, Math.floor(xs.length / 400));
       for (let i = 0; i < xs.length; i += step) {
         const X = x(xs[i]), Y = y(ys[i]);
-        if (X >= M.l && X <= M.l + iw && Y >= M.t && Y <= M.t + ih) pontosHover.push({ X, Y, s, i });
+        if (X >= M.l && X <= M.l + iw && Y >= M.t && Y <= M.t + ih) G.pontos.push({ X, Y, s, i });
       }
-      // rótulo direto no fim visível da curva
-      // fim da curva antes da queda final de força (a ruptura levaria o rótulo para o eixo)
-      const ymx = Math.max(...ys);
+
+      // rótulo direto
       let iu = xs.length - 1;
-      const naVista = (i) => xs[i] >= X0 && xs[i] <= X1 && ys[i] >= Y0 && ys[i] <= Y1;
-      if (zoom) {
-        // ampliado: rótulo onde a curva sai da área visível pela primeira vez
-        // (assim não vai parar no trecho vertical da ruptura)
+      if (G.zoom) {
+        // ampliado: onde a curva sai da área visível pela primeira vez
         let i0 = 0;
-        while (i0 < xs.length && !naVista(i0)) i0++;
-        if (i0 < xs.length) {
-          iu = i0;
-          while (iu + 1 < xs.length && naVista(iu + 1)) iu++;
-          rot.push({ cp: c.cp, x: x(xs[iu]), y: y(ys[iu]), cor });
-        }
-        return;
+        while (i0 < xs.length && !naVista(s, i0)) i0++;
+        if (i0 >= xs.length) return;
+        iu = i0;
+        while (iu + 1 < xs.length && naVista(s, iu + 1)) iu++;
+      } else if (!ext) {
+        // antes da queda final de força (a ruptura levaria o rótulo para o eixo)
+        const ymx = Math.max(...ys);
+        while (iu > 0 && ys[iu] < .85 * ymx) iu--;
       }
-      while (iu > 0 && (xs[iu] > X1 || ys[iu] > Y1 || ys[iu] < .85 * ymx)) iu--;
-      if (vista === 'el') { let k = 0; while (k < xs.length - 1 && xs[k + 1] <= X1 * .97) k++; iu = k; }
-      rot.push({ cp: c.cp, x: x(xs[iu]), y: y(ys[iu]), cor });
+      rot.push({ cp: c.cp, x: x(xs[iu]), y: y(ys[iu]) });
     });
 
-    // rótulos diretos sem colisão (à direita da área do gráfico)
     const gl = svgEl('g', { class: 'lbls' }, svg);
     rot.sort((a, b) => a.y - b.y);
-    if (zoom) {
-      // ampliado: rótulo junto da curva, em x e y; só afasta os que se sobrepõem de fato
+    if (G.zoom) {
       const postos = [];
       rot.forEach(r => {
-        r.x = Math.min(Math.max(r.x + 6, M.l + 4), M.l + iw - 44);
-        r.y = Math.min(Math.max(r.y + 12, M.t + 12), M.t + ih - 6);
-        let ok = false;
-        while (!ok) { ok = !postos.some(p => Math.abs(p.x - r.x) < 44 && Math.abs(p.y - r.y) < 14); if (!ok) r.y += 14; }
+        r.x = limitar(r.x + 6, M.l + 4, M.l + iw - 44);
+        r.y = limitar(r.y + 12, M.t + 12, M.t + ih - 6);
+        while (postos.some(p => Math.abs(p.x - r.x) < 44 && Math.abs(p.y - r.y) < 14)) r.y += 14;
         postos.push(r);
       });
     } else {
-      for (let i = 1; i < rot.length; i++) if (rot[i].y - rot[i - 1].y < 16) rot[i].y = rot[i - 1].y + 16;
+      // se os rótulos empilhados não cabem na altura do gráfico, fica só o do CP destacado
+      const gap = 15;
+      if (rot.length * gap > ih + M.b * .5) rot.splice(0, rot.length, ...rot.filter(r => r.cp === destaque));
+      for (let i = 1; i < rot.length; i++) if (rot[i].y - rot[i - 1].y < gap) rot[i].y = rot[i - 1].y + gap;
+      const sobra = rot.length ? rot[rot.length - 1].y - (M.t + ih) : 0;
+      if (sobra > 0) rot.forEach(r => { r.y -= sobra; });
+      rot.forEach(r => { r.x = Math.min(r.x + 8, W - 54); });
     }
     rot.forEach(r => {
-      const lx = zoom ? r.x : Math.min(r.x + 8, W - 54);
-      svgEl('text', { x: lx, y: r.y + 4, class: 'lbl' + (destaque && destaque !== r.cp ? ' dim' : ''), 'data-cp': r.cp }, gl).textContent = r.cp;
+      svgEl('text', { x: r.x, y: r.y + 4, class: 'lbl' + (destaque && destaque !== r.cp ? ' dim' : ''), 'data-cp': r.cp }, gl).textContent = r.cp;
     });
-
-    const nota = $('tr-nota');
-    const semLc = data.cps.filter(visivel).filter(c => !c.Lc).length;
-    nota.innerHTML = vista === 'fd'
-      ? '○ fim do trecho com extensômetro (pausa) · ■ força máxima · curvas completas até a ruptura'
-      : vista === 'el'
-        ? '◆ Rp0,2 · clique numa curva para ver a reta do módulo E e a reta deslocada de 0,2 %'
-        : '<span class="prop-leg">╌ linha de proporcionalidade (módulo E)</span> · ' + (semLc
-          ? `Mostrando só o trecho medido pelo extensômetro (até ~1,1 %). ${semLc === data.cps.filter(visivel).length ? 'Para' : `Em ${semLc} CP(s), para`} estender a curva até a ruptura, informe o comprimento útil Lc na tabela dos CPs.`
-          : `◆ Rp0,2 · ■ força máxima · traço claro = deformação <b>estimada pelo atuador</b> após a retirada do extensômetro (${filtro.complac ? 'com' : 'sem'} correção de complacência)`);
-    nota.innerHTML += ` <span class="tr-zoom-dica">· Zoom: roda do mouse ou arraste uma área${zoom ? ' · Shift+arrastar move' : ''} · duplo clique volta</span>`;
-    renderMedias();
   }
-
-  // dica: ponto mais próximo do cursor
-  const tipEl = () => $('tr-tip');
-  document.addEventListener('pointermove', (e) => {
-    const box = $('tr-chart');
-    if (!box || !box.contains(e.target)) return;
-    const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-    let best = null, bd = 18 * 18;
-    pontosHover.forEach(p => { if (destaque && destaque !== p.s.c.cp) return; const d = (p.X - mx) ** 2 + (p.Y - my) ** 2; if (d < bd) { bd = d; best = p; } });
-    const t = tipEl();
-    if (!best) { t.hidden = true; return; }
-    const { s, i } = best, c = s.c, cv = CURVAS[c.cp];
-    const est = vista === 'ss' && s.u && i >= cv.n_ext;
-    t.innerHTML = `<b>${esc(c.cp)}</b> · ${esc(grupoNome(grupo(c)))}<br>` + (vista === 'fd'
-      ? `δ <span class="tv">${br(cv.d[i], 3)} mm</span> · F <span class="tv">${br(cv.F[i], 2)} kN</span><br>t = ${br(cv.t[i], 1)} s${i >= cv.n_ext ? ' · sem extensômetro' : ''}`
-      : `ε <span class="tv">${br(s.xs[i], 3)} %</span>${est ? ' <i>(estimada)</i>' : ''} · σ <span class="tv">${br(s.ys[i], 0)} MPa</span><br>Rp0,2 ${br(s.p.Rp02, 0)} MPa · Rm ${br(s.p.Rm, 0)} MPa`);
-    t.hidden = false;
-    t.style.left = Math.min(Math.max(best.X, 100), r.width - 100) + 'px';
-    t.style.top = best.Y + 'px';
-  });
-  $('tr-chart').addEventListener('pointerleave', () => { tipEl().hidden = true; });
-  document.addEventListener('click', (e) => {
-    const box = $('tr-chart');
-    const linha = e.target.closest('#tr-mean tr[data-g]');
-    if (linha) {
-      const cps = data.cps.filter(c => visivel(c) && grupo(c) === linha.dataset.g);
-      destaque = cps.length === 1 ? (destaque === cps[0].cp ? null : cps[0].cp) : null;
-      if (cps.length > 1) { filtro.alvos = new Set([cps[0].alvo]); filtro.dir = cps[0].dir; }
-      tudo(); return;
-    }
-    if (!box || !box.contains(e.target)) return;
-    if (arrastou) { arrastou = false; return; }   // fim de arraste de zoom, não é clique
-    if (e.target.closest('.tr-zoom')) return;
-    const lbl = e.target.closest('[data-cp]');
-    if (lbl && lbl.tagName === 'text') { destaque = destaque === lbl.dataset.cp ? null : lbl.dataset.cp; renderGrafico(); return; }
-    const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-    let best = null, bd = 18 * 18;
-    pontosHover.forEach(p => { const d = (p.X - mx) ** 2 + (p.Y - my) ** 2; if (d < bd) { bd = d; best = p; } });
-    destaque = best && destaque !== best.s.c.cp ? best.s.c.cp : null;
-    renderGrafico();
-  });
 
   /* ---------- painel lateral: médias por grupo ---------- */
   function renderMedias() {
@@ -555,7 +581,7 @@
           <td data-calc="Rm" class="en">${comMts(p.Rm, c.mts.Rm, 0)}</td>
           <td>${br(p.Fmax, 2)}</td>
           <td data-calc="Ag">${p.Ag != null ? `${br(p.Ag, 1)}<small class="mts">estimado</small>` : '<span class="nd">—</span>'}</td>
-          <td>${editing ? inp(c, 'A', c.A) : comMts(c.A, null, 1)}${!editing && c.mts.A != null && c.A !== c.mts.A ? `<small class="mts diff" title="Relatório MTS">MTS ${br(c.mts.A, 2)}</small>` : ''}</td>
+          <td>${editing ? inp(c, 'A', c.A) : comMts(c.A, null, 2)}${!editing && c.mts.A != null && c.A !== c.mts.A ? `<small class="mts diff" title="Relatório MTS">MTS ${br(c.mts.A, 2)}</small>` : ''}</td>
           <td class="c-sit">${editing ? inp(c, 'obs', c.obs, 'txt') : esc(c.obs || '')}</td>
         </tr>`;
       }).join('');
@@ -594,7 +620,7 @@
 
   const editaveis = (d) => d.cps.map(c => { const o = { cp: c.cp }; EDIT.forEach(k => o[k] = c[k]); return o; });
   function salvoLocal() {
-    store.set({ cps: editaveis(data) });
+    store.set({ cps: editaveis(data), orig: editaveis(base) });
     renderComp();
     $('tr-badge').hidden = JSON.stringify(editaveis(data)) === JSON.stringify(editaveis(base));
     renderGrafico();
@@ -800,7 +826,8 @@ window.DADOS_TRACAO = ${JSON.stringify(data, null, 1)};
   $('tr-save').addEventListener('click', saveFile);
   $('tr-reset').addEventListener('click', reset);
   $('tr-badge').hidden = JSON.stringify(editaveis(data)) === JSON.stringify(editaveis(base));
-  new ResizeObserver(() => renderGrafico()).observe($('tr-chart'));
+  ligarZoom('ext'); ligarZoom('maq');
+  for (const k in GRAF) new ResizeObserver(() => desenhar(k)).observe($(GRAF[k].id));
   new ResizeObserver(() => renderComp()).observe($('tr-comp-chart'));
   tudo();
 })();

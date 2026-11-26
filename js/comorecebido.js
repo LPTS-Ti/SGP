@@ -78,6 +78,15 @@
     const grupos = d.aumentos || [{ aumento: '', imagens: d.imagens || [] }];
     const nImg = grupos.reduce((a, g) => a + g.imagens.length, 0);
     const nQ = grupos.reduce((a, g) => a + g.imagens.filter(im => im.quant).length, 0);
+    // Quantificação = aumentos com campos quantificados; MEV = os demais (sub-abas por aumento)
+    const ehQuant = (g) => g.quantificacao || g.imagens.some(im => im.quant);
+    const quantG = grupos.filter(ehQuant);
+    const mevG = grupos.filter(g => !ehQuant(g));
+    const abas = [
+      quantG.length && { k: 'quant', nome: 'Quantificação', info: `${quantG.map(g => esc(g.aumento)).filter(Boolean).join(', ')}${quantG.some(g => g.aumento) ? ' · ' : ''}${nQ ? `${nQ} campos` : 'pendente'}` },
+      mevG.length && { k: 'mev', nome: 'MEV', info: mevG.length > 1 ? mevG.map(g => esc(g.aumento)).join(' · ') : `${mevG[0].imagens.length} img` },
+      { k: 'ebsd', nome: 'EBSD', info: '' },
+    ].filter(Boolean);
     const sec = document.createElement('section');
     sec.className = 'slide inner';
     sec.dataset.id = s.id;
@@ -98,33 +107,83 @@
         </nav>
       </div>
       <p class="lede" style="margin-top:10px">${s.desc}</p>
-      ${d.aumentos ? `<div class="cr-aum" role="tablist" aria-label="Aumento">${grupos.map((g, i) => `
+      <div class="cr-aum cr-tabs" role="tablist" aria-label="Resultados">${abas.map((t, i) => `
+        <button type="button" role="tab" class="chip${i === 0 ? ' on' : ''}" data-tab="${t.k}" aria-selected="${i === 0}">
+          ${t.nome}${t.info ? ` <small>${t.info}</small>` : ''}
+        </button>`).join('')}</div>
+      ${mevG.length > 1 ? `<div class="cr-aum cr-sub-aum" role="tablist" aria-label="Aumento (MEV)" hidden>${mevG.map((g, i) => `
         <button type="button" role="tab" class="chip${i === 0 ? ' on' : ''}" data-aum="${i}" aria-selected="${i === 0}">
-          ${esc(g.aumento)} <small>${g.imagens.length} img${g.imagens.filter(im => im.quant).length ? ` · ${g.imagens.filter(im => im.quant).length} quant.` : ''}</small>
+          ${esc(g.aumento)} <small>${g.imagens.length} img</small>
         </button>`).join('')}</div>` : ''}
       <div class="cr-scroll">
-        ${grupos.map((g, i) => `<div class="cr-panel" data-aum="${i}"${i ? ' hidden' : ''}>${galeria(g.imagens, s, g.aumento)}</div>`).join('')}
+        ${quantG.length ? `<div class="cr-panel" data-tab="quant">${nQ ? '' : `<p class="cr-pend"><b>Quantificação de fases pendente.</b> Imagens a ${esc(quantG.map(g => g.aumento.replace('x', '')).join(', '))}× selecionadas para a quantificação SVRNA (ferrita × austenita).</p>`}${quantG.map(g =>
+          `${quantG.length > 1 ? `<h3 class="cr-sub">${esc(g.aumento)}</h3>` : ''}${galeria(g.imagens, s, g.aumento)}`).join('')}</div>` : ''}
+        ${mevG.map((g, i) => `<div class="cr-panel" data-tab="mev" data-aum="${i}" hidden>${galeria(g.imagens, s, g.aumento)}</div>`).join('')}
+        <div class="cr-panel" data-tab="ebsd" hidden>
+          <div class="ebsd-vazio">
+            <p class="ebsd-tag">Em preparação</p>
+            <p>Os resultados de EBSD da ${s.nome.toLowerCase()} ainda serão inseridos${d.mapas_ebsd ? ` (${d.mapas_ebsd} mapas disponíveis)` : ''}.</p>
+          </div>
+        </div>
       </div>
-      <p class="cr-note">${nImg} de ${d.total_mev} imagens MEV da seção${nQ ? ` · ${nQ} quantificadas (SVRNA, ASTM E562 ±95%)` : ''} · ${d.mapas_ebsd} mapas EBSD (.ctf, ainda não exibidos) · clique para ampliar</p>`;
-    sec.querySelectorAll('.cr-aum .chip').forEach(b => b.addEventListener('click', () => {
-      sec.querySelectorAll('.cr-aum .chip').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
-      sec.querySelectorAll('.cr-panel').forEach(p => { p.hidden = p.dataset.aum !== b.dataset.aum; });
+      <p class="cr-note">${nImg} de ${d.total_mev} imagens MEV da seção${nQ ? ` · ${nQ} quantificadas (SVRNA, ASTM E562 ±95%)` : ''} · clique para ampliar</p>`;
+    // abas principais: Quantificação | MEV (sub-abas por aumento) | EBSD
+    let mevAtual = '0';
+    const mostrar = (tab) => {
+      sec.querySelectorAll('.cr-tabs .chip').forEach(x => { const on = x.dataset.tab === tab; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); });
+      const sub = sec.querySelector('.cr-sub-aum');
+      if (sub) sub.hidden = tab !== 'mev';
+      sec.querySelectorAll('.cr-panel').forEach(p => {
+        p.hidden = p.dataset.tab !== tab || (tab === 'mev' && p.dataset.aum !== mevAtual);
+      });
       sec.querySelector('.cr-scroll').scrollTop = 0;
+    };
+    sec.querySelectorAll('.cr-tabs .chip').forEach(b => b.addEventListener('click', () => mostrar(b.dataset.tab)));
+    sec.querySelectorAll('.cr-sub-aum .chip').forEach(b => b.addEventListener('click', () => {
+      mevAtual = b.dataset.aum;
+      sec.querySelectorAll('.cr-sub-aum .chip').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
+      mostrar('mev');
     }));
+    mostrar(abas[0].k);
     depois.after(sec); depois = sec;
   });
 
   /* ampliar uma micrografia */
   const lb = document.createElement('div');
   lb.className = 'lb';
-  lb.innerHTML = '<div class="lb-one"></div><p class="lb-cap"></p><button class="lb-close" type="button" aria-label="Fechar">✕</button>';
+  lb.innerHTML = '<div class="lb-one"></div><p class="lb-cap"></p>' +
+    '<button class="lb-nav lb-prev" type="button" aria-label="Micrografia anterior">‹</button>' +
+    '<button class="lb-nav lb-next" type="button" aria-label="Próxima micrografia">›</button>' +
+    '<button class="lb-close" type="button" aria-label="Fechar">✕</button>';
   document.body.appendChild(lb);
   const fechar = () => lb.classList.remove('open');
-  lb.addEventListener('click', (e) => { if (!e.target.closest('img')) fechar(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lb.classList.contains('open')) fechar(); });
+
+  // navegação ← →: percorre as micrografias da aba aberta (uma por campo; o par original + quantificada conta uma vez)
+  let lista = [], atual = 0;
+  const camposDaAba = (b) => {
+    const painel = b.closest('.cr-panel') || b.closest('.slide');
+    return [...painel.querySelectorAll('.cr-pair, .cr-one')].map(f => f.querySelector('.cr-fig')).filter(Boolean);
+  };
+  const ir = (passo) => { if (lista.length > 1) mostrar(lista[(atual + passo + lista.length) % lista.length]); };
+  lb.addEventListener('click', (e) => {
+    if (e.target.closest('.lb-prev')) { ir(-1); return; }
+    if (e.target.closest('.lb-next')) { ir(1); return; }
+    if (!e.target.closest('img')) fechar();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') fechar();
+    else if (e.key === 'ArrowRight') { e.preventDefault(); ir(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); ir(-1); }
+  });
   document.addEventListener('click', (e) => {
     const b = e.target.closest('.cr-fig');
     if (!b) return;
+    lista = camposDaAba(b);
+    mostrar(b.closest('.cr-pair, .cr-one')?.querySelector('.cr-fig') || b);
+  });
+  function mostrar(b) {
+    atual = Math.max(0, lista.indexOf(b));
     const q = b.dataset.quant;
     const box = lb.querySelector('.lb-one');
     box.className = q ? 'lb-one lb-pair' : 'lb-one';
@@ -133,7 +192,9 @@
          <figure><img src="${esc(q)}" alt="Quantificação ${esc(b.dataset.nome)}"><figcaption>Quantificada</figcaption></figure>`
       : `<img src="${esc(b.dataset.src)}" alt="${esc(b.dataset.nome)}">`;
     let f = null; try { f = JSON.parse(b.dataset.fases); } catch (_) {}
-    lb.querySelector('.lb-cap').innerHTML = `<b>${esc(b.closest('.slide').dataset.title)}</b> · ${esc(b.dataset.aum ? b.dataset.aum + ' · ' : '')}${esc(b.dataset.nome)} ${f ? faseTxt(f) : ''}`;
+    const pos = lista.length > 1 ? ` <span class="lb-pos">${atual + 1} / ${lista.length} · ← → para navegar</span>` : '';
+    lb.querySelector('.lb-cap').innerHTML = `<b>${esc(b.closest('.slide').dataset.title)}</b> · ${esc(b.dataset.aum ? b.dataset.aum + ' · ' : '')}${esc(b.dataset.nome)} ${f ? faseTxt(f) : ''}${pos}`;
+    lb.querySelectorAll('.lb-nav').forEach(x => { x.hidden = lista.length < 2; });
     lb.classList.add('open');
-  });
+  }
 })();

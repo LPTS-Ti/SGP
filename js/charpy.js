@@ -28,9 +28,23 @@
   const COR_CLARO = { 0: '#6b7580', 2: '#2a6fc9', 4: '#c94f1e', 6: '#13835c' };
 
   const clone = (o) => JSON.parse(JSON.stringify(o));
+  const ASSINATURA = (() => {   // hash curto do conteúdo do arquivo de dados
+    const s = JSON.stringify(base || null); let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return s.length + ':' + h;
+  })();
   const store = {
-    get() { try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
-    set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
+    // a cópia local guarda a "assinatura" do arquivo de dados de onde veio; se o arquivo mudou
+    // (importador ou edição), a cópia antiga é descartada e valem os dados novos do arquivo
+    get() {
+      try {
+        const v = JSON.parse(localStorage.getItem(KEY) || 'null');
+        if (v && v.base === ASSINATURA && v.data) return v.data;
+        if (v) localStorage.removeItem(KEY);
+      } catch (e) {}
+      return null;
+    },
+    set(v) { try { localStorage.setItem(KEY, JSON.stringify({ base: ASSINATURA, data: v })); } catch (e) {} },
     clear() { try { localStorage.removeItem(KEY); } catch (e) {} },
   };
   let data = store.get() || clone(base);
@@ -139,95 +153,116 @@
       : svgEl('circle', { cx: x, cy: y, r, ...attrs }, g);
   }
 
-  /* ---------- zoom do gráfico ----------
-   * roda do mouse: zoom em torno do cursor · arrastar: zoom na área · Shift+arrastar: mover
-   * duplo clique ou "Ajustar": volta à vista inteira · botões + / − no canto */
+  /* ---------- zoom do gráfico (mesmo comportamento do ensaio de tração) ----------
+   *   roda do mouse: amplia/reduz mantendo fixo o ponto sob o cursor
+   *   arrastar (com zoom): move a área ampliada · Shift+arrastar: amplia a área selecionada
+   *   duplo clique ou "Ajustar": volta a 100 % · botões + / −
+   *   limites: de 100 % (vista inteira) até ZOOM_MAX em cada eixo */
+  const ZOOM_MAX = 50;
   let zoom = null;        // {x0, x1, y0, y1}: °C e J; null = vista inteira
   let escala = null;
   let arrastou = false;
+  const limitar = (v, a, b) => Math.min(Math.max(v, a), b);
   const paraDados = (px, py) => ({
     x: escala.X0 + (px - escala.M.l) / escala.iw * (escala.X1 - escala.X0),
     y: escala.Y0 + (escala.M.t + escala.ih - py) / escala.ih * (escala.Y1 - escala.Y0),
   });
   function aplicarZoom(z) {
     const b = escala.base, W = b.X1 - b.X0, H = b.Y1 - b.Y0;
-    if (z.x1 - z.x0 >= W * .999 && z.y1 - z.y0 >= H * .999) { zoom = null; renderGrafico(); return; }
-    const w = Math.min(z.x1 - z.x0, W), h = Math.min(z.y1 - z.y0, H);
-    const x0 = Math.min(Math.max(z.x0, b.X0), b.X1 - w), y0 = Math.min(Math.max(z.y0, b.Y0), b.Y1 - h);
+    const w = limitar(z.x1 - z.x0, W / ZOOM_MAX, W), h = limitar(z.y1 - z.y0, H / ZOOM_MAX, H);
+    if (w >= W * .999 && h >= H * .999) { zoom = null; renderGrafico(); return; }
+    // a área ampliada nunca sai da vista inteira (os dados não somem da tela)
+    const x0 = limitar(z.x0, b.X0, b.X1 - w), y0 = limitar(z.y0, b.Y0, b.Y1 - h);
     zoom = { x0, x1: x0 + w, y0, y1: y0 + h };
     renderGrafico();
   }
+  // f < 1 amplia, f > 1 reduz; (cx, cy), em °C e J, fica parado na tela
   function zoomEm(cx, cy, f) {
-    const { X0, X1, Y0, Y1 } = escala;
-    aplicarZoom({ x0: cx - (cx - X0) * f, x1: cx + (X1 - cx) * f, y0: cy - (cy - Y0) * f, y1: cy + (Y1 - cy) * f });
+    const s = escala, b = s.base, W = b.X1 - b.X0, H = b.Y1 - b.Y0;
+    const w0 = s.X1 - s.X0, h0 = s.Y1 - s.Y0;
+    const fx = limitar(w0 * f, W / ZOOM_MAX, W) / w0, fy = limitar(h0 * f, H / ZOOM_MAX, H) / h0;
+    aplicarZoom({ x0: cx - (cx - s.X0) * fx, x1: cx + (s.X1 - cx) * fx, y0: cy - (cy - s.Y0) * fy, y1: cy + (s.Y1 - cy) * fy });
   }
+  const zerarZoom = () => { zoom = null; renderGrafico(); };
   const dentroDoPlot = (mx, my) => escala && mx >= escala.M.l && mx <= escala.M.l + escala.iw && my >= escala.M.t && my <= escala.M.t + escala.ih;
 
   (function ligarZoom() {
     const box = document.getElementById('ch-chart');
     if (!box) return;
+    const svg = document.getElementById('ch-svg');
     const ctl = document.createElement('div');
     ctl.className = 'ch-zoom';
-    ctl.innerHTML = '<button type="button" data-z="in" title="Aproximar" aria-label="Aproximar">+</button>' +
+    ctl.innerHTML = '<span class="ch-zpct" title="Ampliação atual">100%</span>' +
+      '<button type="button" data-z="in" title="Aproximar" aria-label="Aproximar">+</button>' +
       '<button type="button" data-z="out" title="Afastar" aria-label="Afastar">−</button>' +
-      '<button type="button" data-z="reset" title="Ver o gráfico inteiro (ou duplo clique)">Ajustar</button>';
+      '<button type="button" data-z="reset" title="Voltar a 100 % (ou duplo clique no gráfico)">Ajustar</button>';
     box.appendChild(ctl);
     const zbox = document.createElement('div');
     zbox.className = 'ch-zbox'; zbox.hidden = true;
     box.appendChild(zbox);
+    // posição do cursor no sistema do SVG (descontando a borda da caixa e a escala do viewBox)
+    const pos = (e) => {
+      const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      const sx = vb && vb.width && r.width ? vb.width / r.width : 1, sy = vb && vb.height && r.height ? vb.height / r.height : 1;
+      return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
+    };
 
     ctl.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-z]');
       if (!b || !escala) return;
       e.stopPropagation();
-      if (b.dataset.z === 'reset') { zoom = null; renderGrafico(); return; }
+      if (b.dataset.z === 'reset') { zerarZoom(); return; }
       zoomEm((escala.X0 + escala.X1) / 2, (escala.Y0 + escala.Y1) / 2, b.dataset.z === 'in' ? .6 : 1 / .6);
     });
     box.addEventListener('wheel', (e) => {
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      const [mx, my] = pos(e);
       if (!dentroDoPlot(mx, my)) return;
       e.preventDefault();
       const p = paraDados(mx, my);
-      zoomEm(p.x, p.y, e.deltaY < 0 ? .8 : 1.25);
+      zoomEm(p.x, p.y, e.deltaY < 0 ? .85 : 1 / .85);
     }, { passive: false });
-    box.addEventListener('dblclick', (e) => { if (e.target.closest('.ch-zoom')) return; zoom = null; renderGrafico(); });
+    box.addEventListener('dblclick', (e) => { if (!e.target.closest('.ch-zoom')) zerarZoom(); });
 
-    let ini = null;
+    let ini = null;   // {mx, my, modo: 'pan' | 'area' | 'clique', z}
     box.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || e.pointerType === 'touch' || e.target.closest('.ch-zoom')) return;
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      const [mx, my] = pos(e);
       if (!dentroDoPlot(mx, my)) return;
-      ini = { mx, my, pan: e.shiftKey && !!zoom, z: { X0: escala.X0, X1: escala.X1, Y0: escala.Y0, Y1: escala.Y1 } };
+      ini = { mx, my, modo: e.shiftKey ? 'area' : zoom ? 'pan' : 'clique', z: { X0: escala.X0, X1: escala.X1, Y0: escala.Y0, Y1: escala.Y1 } };
       arrastou = false;
-      box.setPointerCapture(e.pointerId);
+      if (ini.modo !== 'clique') box.setPointerCapture(e.pointerId);
     });
     box.addEventListener('pointermove', (e) => {
-      if (!ini) return;
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      if (Math.abs(mx - ini.mx) + Math.abs(my - ini.my) > 6) arrastou = true;
+      if (!ini || ini.modo === 'clique') return;
+      const [mx, my] = pos(e);
+      if (Math.abs(mx - ini.mx) + Math.abs(my - ini.my) > 4) arrastou = true;
       if (!arrastou) return;
-      if (ini.pan) {
+      if (tip()) tip().hidden = true;
+      if (ini.modo === 'pan') {
+        box.classList.add('panning');
         const z = ini.z, dx = (mx - ini.mx) / escala.iw * (z.X1 - z.X0), dy = (my - ini.my) / escala.ih * (z.Y1 - z.Y0);
         aplicarZoom({ x0: z.X0 - dx, x1: z.X1 - dx, y0: z.Y0 + dy, y1: z.Y1 + dy });
         return;
       }
       const { M, iw, ih } = escala;
-      const cx = Math.min(Math.max(mx, M.l), M.l + iw), cy = Math.min(Math.max(my, M.t), M.t + ih);
+      const cx = limitar(mx, M.l, M.l + iw), cy = limitar(my, M.t, M.t + ih);
       Object.assign(zbox.style, { left: Math.min(ini.mx, cx) + 'px', top: Math.min(ini.my, cy) + 'px',
         width: Math.abs(cx - ini.mx) + 'px', height: Math.abs(cy - ini.my) + 'px' });
       zbox.hidden = false;
     });
-    box.addEventListener('pointerup', (e) => {
+    const fim = (e) => {
       if (!ini) return;
-      const r = box.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      if (arrastou && !ini.pan && Math.abs(mx - ini.mx) > 8 && Math.abs(my - ini.my) > 8) {
+      const [mx, my] = pos(e);
+      if (ini.modo === 'area' && arrastou && Math.abs(mx - ini.mx) > 8 && Math.abs(my - ini.my) > 8) {
         const a = paraDados(ini.mx, ini.my), b = paraDados(mx, my);
         aplicarZoom({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y) });
       }
       zbox.hidden = true;
+      box.classList.remove('panning');
       ini = null;
-    });
-    box.addEventListener('pointercancel', () => { zbox.hidden = true; ini = null; });
+    };
+    box.addEventListener('pointerup', fim);
+    box.addEventListener('pointercancel', () => { zbox.hidden = true; box.classList.remove('panning'); ini = null; });
   })();
 
   function renderGrafico() {
@@ -255,6 +290,7 @@
     const passo = span >= 3 * PASSO_Y ? PASSO_Y : span >= 30 ? 10 : span >= 12 ? 5 : span >= 5 ? 2 : 1;
     escala = { M, iw, ih, X0, X1, Y0, Y1, base };
     box.classList.toggle('zoomed', !!zoom);
+    { const zp = box.querySelector('.ch-zpct'); if (zp) zp.textContent = Math.round(Math.max((base.X1 - base.X0) / (X1 - X0), (base.Y1 - base.Y0) / (Y1 - Y0)) * 100) + '%'; }
     if (tip()) tip().hidden = true;
     const x = (t) => M.l + (t - X0) / (X1 - X0) * iw;
     const y = (v) => M.t + ih - (v - Y0) / (Y1 - Y0) * ih;

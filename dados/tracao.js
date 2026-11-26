@@ -24,8 +24,8 @@ window.DADOS_TRACAO = {
    "espessura": 5.99,
    "area": 35.8801,
    "Lc": 25.0,
-   "A": 30.0,
-   "obs": "",
+   "A": 49.88,
+   "obs": "A remedido no CP (valor corrigido; o relatório MTS indicava 30,0 %).",
    "calc": {
     "S0": 35.8801,
     "E_GPa": 201.56,
@@ -129,8 +129,8 @@ window.DADOS_TRACAO = {
    "espessura": 5.99,
    "area": 35.8801,
    "Lc": 25.0,
-   "A": 27.5,
-   "obs": "",
+   "A": 49.12,
+   "obs": "A remedido no CP (valor corrigido; o relatório MTS indicava 27,5 %).",
    "calc": {
     "S0": 35.8801,
     "E_GPa": 198.03,
@@ -234,8 +234,8 @@ window.DADOS_TRACAO = {
    "espessura": 5.99,
    "area": 35.8801,
    "Lc": 25.0,
-   "A": 30.0,
-   "obs": "",
+   "A": 49.2,
+   "obs": "A remedido no CP (valor corrigido; o relatório MTS indicava 30,0 %).",
    "calc": {
     "S0": 35.8801,
     "E_GPa": 199.34,

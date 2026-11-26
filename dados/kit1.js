@@ -8,23 +8,23 @@ window.DADOS_KIT1 = {
   "condicoes": [
     {
       "id": "2", "rotulo": "2%",
-      "mo":     { "media": null, "dp": null },
+      "mo":     { "media": 1.7747, "dp": 0.3448 },
       "mev":    { "media": 1.02, "dp": 0.1173063914 },
-      "ferrito":{ "media": null, "dp": null },
-      "situacao": "Quantificação por MO pendente"
+      "ferrito":{ "media": 35.67, "dp": null },
+      "situacao": "MO: 15 campos (amostra S2 #6)"
     },
     {
       "id": "4", "rotulo": "4%",
-      "mo":     { "media": null, "dp": null },
+      "mo":     { "media": 4.322, "dp": 0.5592 },
       "mev":    { "media": 1.8, "dp": 0.3389977988 },
-      "ferrito":{ "media": null, "dp": null },
-      "situacao": "Quantificação por MO pendente"
+      "ferrito":{ "media": 33.3, "dp": null },
+      "situacao": "MO: 10 campos (amostra S4 #6)"
     },
     {
       "id": "6", "rotulo": "6%",
       "mo":     { "media": null, "dp": null },
       "mev":    { "media": 3.829666667, "dp": 1.240157063 },
-      "ferrito":{ "media": null, "dp": null },
+      "ferrito":{ "media": 30.2, "dp": null },
       "situacao": "Quantificação por MO pendente"
     }
   ]

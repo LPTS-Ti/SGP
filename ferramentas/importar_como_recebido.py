@@ -37,6 +37,20 @@ PADRAO = {
                         'Como Recebido_044.jpg', 'Como Recebido_053.jpg', 'Como Recebido_060.jpg'],
 }
 
+# Seleção por aumento quando a seção não tem a pasta "Selecionadas/<aumento>".
+# Aumentos lidos na barra de dados do MEV de cada imagem (Como Recebido_NNN.jpg).
+CR = 'Como Recebido_{:03d}.jpg'
+PADRAO_AUMENTOS = {
+    'Circunferencial': {
+        'x250': [CR.format(n) for n in (11, 16, 39, 63)],
+        'x500': [CR.format(n) for n in (3, 9, 10, 15, 29, 38, 62)],
+        'x1000': [CR.format(n) for n in (4, 8, 14, 22, 28, 37, 43, 44, 47, 48, 49, 50, 52, 53, 54, 55, 56, 57, 61)],
+        # retiradas a pedido: 042, 045, 046, 051, 058
+    },
+}
+# aumento usado na quantificação de fases (aba "Quantificação" do site)
+AUMENTO_QUANT = 'x250'
+
 
 def ler_planilha(caminho):
     ws = openpyxl.load_workbook(caminho, data_only=True).active
@@ -123,12 +137,18 @@ def main():
              'mapas_ebsd': len(glob.glob(os.path.join(ORIGEM, secao, 'EBSD', '*.ctf')))}
         subs = sorted([p for p in glob.glob(os.path.join(sel, '*')) if os.path.isdir(p)],
                       key=lambda p: int(re.sub(r'\D', '', os.path.basename(p)) or 0)) if sel else []
-        if subs:
+        grupos = [(os.path.basename(p), imagens(p)) for p in subs]
+        if not grupos and secao in PADRAO_AUMENTOS:
+            grupos = [(aum, [os.path.join(mev, a) for a in arqs if os.path.exists(os.path.join(mev, a))])
+                      for aum, arqs in PADRAO_AUMENTOS[secao].items()]
+        if grupos:
             d['aumentos'] = []
-            for p in subs:
-                aum = os.path.basename(p)
-                lista = importar(imagens(p), mev, f'{chave}-{aum}', versao)
-                d['aumentos'].append({'aumento': aum, 'imagens': lista})
+            for aum, arqs in grupos:
+                lista = importar(arqs, mev, f'{chave}-{aum}', versao)
+                g = {'aumento': aum, 'imagens': lista}
+                if aum == AUMENTO_QUANT:
+                    g['quantificacao'] = True     # vai para a aba "Quantificação", mesmo sem campos quantificados ainda
+                d['aumentos'].append(g)
                 print(f'{secao} {aum}: {len(lista)} imagens, {sum("quant" in r for r in lista)} quantificadas')
         else:
             arquivos = imagens(sel) if sel else [os.path.join(mev, a) for a in padrao if os.path.exists(os.path.join(mev, a))]

@@ -49,6 +49,8 @@ GAP_PAUSA = 1.0                      # s
 PONTOS_EXT = 320                     # pontos guardados no trecho com extensômetro
 PONTOS_POS = 380                     # pontos guardados depois da referência
 LC_PADRAO = 25.0                     # mm: comprimento útil (Lc) de todos os CPs
+# Alongamento após fratura (A, %) remedido no CP; substitui o valor do relatório MTS
+A_MEDIDO = {'TR01': 49.88, 'TR02': 49.12, 'TR03': 49.20}
 
 
 def sha256(caminho):
@@ -221,6 +223,10 @@ def processar(pasta, nome=None, relatorio=None):
         obs.append('Alongamento após fratura não informado no relatório.')
 
     cp = nome_pasta.split(' - ')[0].replace(' ', '')
+    if cp in A_MEDIDO:
+        obs.append(f'A remedido no CP (valor corrigido; o relatório MTS indicava '
+                   f'{str(A_rel).replace(".", ",") if A_rel is not None else "—"} %).')
+        A = A_MEDIDO[cp]
     num_rel = str(rel.get('Número do Ensaio', ''))
     m_rel = re.search(r'-\s*([0O\d])\s*([LC])\s*$', num_rel)
     alvo = dirc = None

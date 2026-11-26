@@ -74,23 +74,74 @@ def salvar(origem, destino, png=False, altura=None):
         im.save(destino, quality=85, optimize=True)
 
 
-def main():
-    versao = int(time.time())   # força o navegador a recarregar imagens trocadas
-    campos = {}
-    avisos = []
-    for tec, pasta_tecnica in FONTES.items():
-        pasta_sel = os.path.join(pasta_tecnica, 'Imagens selecionadas')
-        if not os.path.isdir(pasta_sel):
-            continue
-        for xlsx in sorted(glob.glob(os.path.join(pasta_sel, '*.xlsx'))):
-            if os.path.basename(xlsx).startswith('~$'):
-                continue
+N_CAMPOS_MO = 2   # campos de MO mostrados por condição
+# σ (%) de referência para escolher os campos de MO de cada condição; sem entrada, usa a média da amostra
+ALVO_MO = {'4': 4.0}
+
+
+def eh_pasta_quant(nome):
+    return nome.strip().lower().startswith('quantifica')
+
+
+def planilhas_campo(pasta):
+    """Planilhas SVRNA de um campo (ignora resumos "Quantificacao de Fases ..." e temporários)."""
+    return [x for x in sorted(glob.glob(os.path.join(pasta, '*.xlsx')))
+            if not os.path.basename(x).startswith(('~$', 'Quantificacao', 'Quantificação'))]
+
+
+def fontes_quant(avisos):
+    """Lista (técnica, condição, planilha, pasta da planilha, pasta da técnica, nome base) a importar.
+
+    MEV: KIT 1/MEV/Imagens selecionadas/Quantificação/<cond>%_BSE_NNN.xlsx (+ .jpg, .png)
+         (ou direto em "Imagens selecionadas", organização antiga). Subpastas dela não entram.
+    MO:  KIT 1/Ótico/S<cond> #<lote>/NNN.xlsx (+ .jpg, .png), um campo por planilha. Entram os
+         N_CAMPOS_MO campos com σ mais próximo de ALVO_MO (ou da média da amostra).
+    """
+    saida = []
+    sel = os.path.join(FONTES['mev'], 'Imagens selecionadas')
+    if os.path.isdir(sel):
+        q = [os.path.join(sel, d) for d in sorted(os.listdir(sel))
+             if eh_pasta_quant(d) and os.path.isdir(os.path.join(sel, d))]
+        pasta_q = q[0] if q else sel
+        for xlsx in planilhas_campo(pasta_q):
             base = os.path.splitext(os.path.basename(xlsx))[0]          # ex.: 2%_BSE_019
             m = re.match(r'(\d+)%', base)
             if not m:
                 avisos.append(f'{base}: não identifiquei a condição pelo nome; ignorado.')
                 continue
+            saida.append(('mev', m.group(1), xlsx, pasta_q, FONTES['mev'], base))
+
+    if os.path.isdir(FONTES['mo']):
+        for d in sorted(os.listdir(FONTES['mo'])):
+            m = re.match(r'S\s*(\d+)\s*%?\s*#', d)
+            pasta = os.path.join(FONTES['mo'], d)
+            if not m or not os.path.isdir(pasta):
+                continue
             cond = m.group(1)
+            sig = []
+            for xlsx in planilhas_campo(pasta):
+                _, fases = ler_planilha(xlsx)
+                if FASE_SIGMA in fases:
+                    sig.append((fases[FASE_SIGMA][0], xlsx))
+            if not sig:
+                avisos.append(f'MO {cond}% ("{d}"): sem planilhas de campo com imagem; nada importado.')
+                continue
+            media = sum(s for s, _ in sig) / len(sig)
+            alvo = ALVO_MO.get(cond, media)
+            escolhidos = sorted(sorted(sig, key=lambda t: abs(t[0] - alvo))[:N_CAMPOS_MO], key=lambda t: t[1])
+            print(f'MO  {cond}%  {len(sig)} campos na pasta "{d}", média σ = {media:.2f} %; '
+                  f'mais próximos de {alvo:.2f} %: {", ".join(os.path.basename(x) for _, x in escolhidos)}')
+            for _, xlsx in escolhidos:
+                saida.append(('mo', cond, xlsx, pasta, FONTES['mo'], os.path.splitext(os.path.basename(xlsx))[0]))
+    return saida
+
+
+def main():
+    versao = int(time.time())   # força o navegador a recarregar imagens trocadas
+    campos = {}
+    avisos = []
+    for tec, cond, xlsx, pasta_sel, pasta_tecnica, base in fontes_quant(avisos):
+        if True:
             info, fases = ler_planilha(xlsx)
             if FASE_SIGMA not in fases:
                 avisos.append(f'{base}: planilha sem a fase {FASE_SIGMA}; ignorado.')
@@ -140,8 +191,10 @@ def main():
     galeria = {}
     for tec, pasta_tecnica in FONTES.items():
         pasta_sel = os.path.join(pasta_tecnica, 'Imagens selecionadas')
+        # subpastas de "Imagens selecionadas" (ex.: "Micrografias BSE"), exceto a de quantificação
         fotos = sorted(f for f in glob.glob(os.path.join(pasta_sel, '*', '*'))
-                       if os.path.splitext(f)[1].lower() in ('.jpg', '.jpeg', '.tif', '.tiff', '.png'))
+                       if os.path.splitext(f)[1].lower() in ('.jpg', '.jpeg', '.tif', '.tiff', '.png')
+                       and not eh_pasta_quant(os.path.basename(os.path.dirname(f))))
         for foto in fotos:
             base = os.path.splitext(os.path.basename(foto))[0]           # ex.: 4%_BSE_012
             m = re.match(r'(\d+)%', base)

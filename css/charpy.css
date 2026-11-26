@@ -151,3 +151,6 @@
 .ch-zoom button[data-z="reset"] { font-size: 11px; letter-spacing: .04em; }
 #ch-chart:not(.zoomed) .ch-zoom button[data-z="reset"] { opacity: .45; }
 .ch-zbox { position: absolute; z-index: 2; pointer-events: none; border: 1px dashed var(--accent); background: rgba(246, 98, 31, .08); }
+#ch-chart.zoomed svg { cursor: grab; }
+#ch-chart.panning svg { cursor: grabbing; }
+.ch-zoom .ch-zpct { font-family: var(--mono); font-size: 11px; color: #5f6b76; align-self: center; min-width: 42px; text-align: right; margin-right: 2px; }

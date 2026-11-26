@@ -19,9 +19,23 @@
   if (!base) return;
 
   const clone = (o) => JSON.parse(JSON.stringify(o));
+  const ASSINATURA = (() => {   // hash curto do conteúdo do arquivo de dados
+    const s = JSON.stringify(base || null); let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return s.length + ':' + h;
+  })();
   const store = {
-    get() { try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
-    set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
+    // a cópia local guarda a "assinatura" do arquivo de dados de onde veio; se o arquivo mudou
+    // (importador ou edição), a cópia antiga é descartada e valem os dados novos do arquivo
+    get() {
+      try {
+        const v = JSON.parse(localStorage.getItem(KEY) || 'null');
+        if (v && v.base === ASSINATURA && v.data) return v.data;
+        if (v) localStorage.removeItem(KEY);
+      } catch (e) {}
+      return null;
+    },
+    set(v) { try { localStorage.setItem(KEY, JSON.stringify({ base: ASSINATURA, data: v })); } catch (e) {} },
     clear() { try { localStorage.removeItem(KEY); } catch (e) {} },
   };
 
@@ -67,10 +81,8 @@
             <b>${esc(c.rotulo)}</b> σ <span class="arrow" aria-hidden="true">→</span>
           </a>
         </td>
-        ${TECS.map(t => cell(c, t.k, 'media') + cell(c, t.k, 'dp')).join('')}
-        <td class="c-sit">${editing
-          ? `<input class="txt" data-c="${c.id}" data-f="situacao" value="${esc(c.situacao)}" aria-label="Situação ${c.rotulo}">`
-          : esc(c.situacao || '')}</td>
+        ${TECS.map(t => cell(c, t.k, 'media') + (t.k === 'ferrito' ? '' : cell(c, t.k, 'dp'))).join('')}
+        <td class="c-sit"><a class="mg-link" href="#kit1-${c.id}" data-goto="kit1-${c.id}">Ver micrografia <span class="arrow" aria-hidden="true">→</span></a></td>
       </tr>`).join('');
   }
 
@@ -196,10 +208,11 @@ window.DADOS_KIT1 = ${JSON.stringify(data, null, 2)};
     return sec;
   }
 
-  /* abas de seção da condição: Quantificação | ×1000 (só aparecem se houver galeria) */
+  /* abas de seção da condição: Quantificação | MEV (se houver galeria) | EBSD */
   function secTabs(c, ativo) {
-    if (!galeriaDe(c.id).length) return '';
-    const s = [['quant', 'Quantificação', `kit1-${c.id}`], ['x1000', '×1000', `kit1-${c.id}-galeria`]];
+    const s = [['quant', 'Quantificação', `kit1-${c.id}`]];
+    if (galeriaDe(c.id).length) s.push(['x1000', 'MEV', `kit1-${c.id}-galeria`]);
+    s.push(['ebsd', 'EBSD', `kit1-${c.id}-ebsd`]);
     return `<nav class="cond-tabs sec-tabs" aria-label="Seções">${s.map(([k, nome, id]) =>
       `<a href="#${id}" data-goto="${id}" class="${k === ativo ? 'on' : ''}">${nome}</a>`).join('')}</nav>`;
   }
@@ -212,7 +225,7 @@ window.DADOS_KIT1 = ${JSON.stringify(data, null, 2)};
     const sec = document.createElement('section');
     sec.className = 'slide inner';
     sec.dataset.id = `kit1-${c.id}-galeria`;
-    sec.dataset.title = `Kit 1 · ${c.rotulo} · ×1000`;
+    sec.dataset.title = `Kit 1 · ${c.rotulo} · MEV`;
     sec.innerHTML = `
       <header class="slide-head">
         <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
@@ -234,6 +247,36 @@ window.DADOS_KIT1 = ${JSON.stringify(data, null, 2)};
           <img src="${esc(f.src)}" alt="MEV-BSE ${esc(c.rotulo)} σ, ${esc(f.campo)}" loading="lazy">
           <figcaption>${esc(String(f.campo).replace(/^\d+%_/, '').replace('_', ' '))}</figcaption>
         </figure>`).join('')}
+      </div>`;
+    return sec;
+  }
+
+  /* ---------- seção EBSD: reservada para os resultados que ainda serão inseridos ---------- */
+  function ebsdSlide(c) {
+    const tabs = data.condicoes.map(x =>
+      `<a href="#kit1-${x.id}-ebsd" data-goto="kit1-${x.id}-ebsd" class="${x.id === c.id ? 'on' : ''}">${esc(x.rotulo)}</a>`).join('');
+    const sec = document.createElement('section');
+    sec.className = 'slide inner';
+    sec.dataset.id = `kit1-${c.id}-ebsd`;
+    sec.dataset.title = `Kit 1 · ${c.rotulo} · EBSD`;
+    sec.innerHTML = `
+      <header class="slide-head">
+        <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+        <a class="back" href="#kit1" data-goto="kit1">← Kit 1</a>
+      </header>
+      <div class="cond-top">
+        <div>
+          <p class="kicker">Kit 1 · EBSD</p>
+          <h2>Condição ${esc(c.rotulo)} σ</h2>
+        </div>
+        <div class="cond-acts">
+          ${secTabs(c, 'ebsd')}
+          <nav class="cond-tabs" aria-label="Condições">${tabs}</nav>
+        </div>
+      </div>
+      <div class="ebsd-vazio">
+        <p class="ebsd-tag">Em preparação</p>
+        <p>Os resultados de EBSD desta condição ainda serão inseridos.</p>
       </div>`;
     return sec;
   }
@@ -297,6 +340,7 @@ window.DADOS_KIT1 = ${JSON.stringify(data, null, 2)};
   data.condicoes.forEach(c => {
     const s = condSlide(c); after.after(s); after = s;
     if (galeriaDe(c.id).length) { const g = galSlide(c); after.after(g); after = g; }
+    { const e = ebsdSlide(c); after.after(e); after = e; }
   });
 
   renderTable(); renderPanelValues(); refreshBadge();

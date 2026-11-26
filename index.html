@@ -6,10 +6,10 @@
 <title>Fase Sigma — Resultados</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="css/kit1.css?v=1795537189">
-<link rel="stylesheet" href="css/charpy.css?v=1795635873">
-<link rel="stylesheet" href="css/tracao.css?v=1795635193">
-<link rel="stylesheet" href="css/comorecebido.css?v=1795490782">
+<link rel="stylesheet" href="css/kit1.css?v=1795712939">
+<link rel="stylesheet" href="css/charpy.css?v=1795720174">
+<link rel="stylesheet" href="css/tracao.css?v=1795716095">
+<link rel="stylesheet" href="css/comorecebido.css?v=1795714089">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -623,13 +623,13 @@
               <th rowspan="2" class="c-cond">Condição</th>
               <th colspan="2">Microscopia óptica (MO)</th>
               <th colspan="2">MEV · BSE</th>
-              <th colspan="2">Ferritoscópio</th>
-              <th rowspan="2" class="c-sit">Situação</th>
+              <th title="Teor de ferrita medido pelo ferritoscópio (não é % de fase σ)">Ferritoscópio · % ferrita</th>
+              <th rowspan="2" class="c-sit">Micrografia</th>
             </tr>
             <tr class="sub">
               <th>Média (%)</th><th title="Desvio padrão, em pontos percentuais">Desv. Pad.</th>
               <th>Média (%)</th><th title="Desvio padrão, em pontos percentuais">Desv. Pad.</th>
-              <th>Média (%)</th><th title="Desvio padrão, em pontos percentuais">Desv. Pad.</th>
+              <th>Média (%)</th>
             </tr>
           </thead>
           <tbody id="k1-body"></tbody>
@@ -705,7 +705,7 @@
       <aside class="ch-side">
         <h3>Energia média (J)</h3>
         <table class="ch-mean" id="ch-mean"></table>
-        <p class="ch-note">Média ± desvio padrão amostral. Clique numa linha para destacar a série. Zoom: roda do mouse ou arraste uma área no gráfico · Shift+arrastar move · duplo clique volta.</p>
+        <p class="ch-note">Média ± desvio padrão amostral. Clique numa linha para destacar a série. Zoom: roda do mouse sobre o ponto desejado · arrastar move o gráfico ampliado · Shift+arrastar amplia uma área · duplo clique ou "Ajustar" volta a 100 %.</p>
       </aside>
     </div>
   </section>
@@ -760,22 +760,31 @@
     <div class="ch-filters" data-tr-filtros></div>
     <div class="ch-body">
       <div class="tr-left">
-        <div class="tr-vistas" id="tr-vistas" role="group" aria-label="Tipo de gráfico">
-          <button type="button" class="chip on" data-v="ss">Tensão × deformação</button>
-          <button type="button" class="chip" data-v="el">Região elástica</button>
-          <button type="button" class="chip" data-v="fd">Força × deslocamento</button>
+        <div class="tr-vistas" id="tr-exibir" role="group" aria-label="Gráficos exibidos">
+          <span class="f-lbl">Exibir</span>
+          <button type="button" class="chip" data-x="ext" aria-pressed="false">Extensômetro</button>
+          <button type="button" class="chip" data-x="maq" aria-pressed="false">Máquina (deslocamento)</button>
+          <button type="button" class="chip on" data-x="ambos" aria-pressed="true">Ambos</button>
         </div>
-        <figure class="ch-chart" id="tr-chart" aria-label="Curvas do ensaio de tração">
-          <svg id="tr-svg" role="img"></svg>
-          <div class="ch-tip" id="tr-tip" hidden></div>
-        </figure>
+        <div class="tr-graficos">
+          <figure class="ch-chart tr-chart" id="tr-chart" data-g="ext" aria-label="Tensão × deformação medida pelo extensômetro">
+            <figcaption class="tr-gtit">Extensômetro <small>tensão × deformação</small></figcaption>
+            <svg id="tr-svg" role="img"></svg>
+            <div class="ch-tip" hidden></div>
+          </figure>
+          <figure class="ch-chart tr-chart" id="tr-chart-maq" data-g="maq" aria-label="Tensão × deslocamento do atuador da máquina de ensaios">
+            <figcaption class="tr-gtit">Máquina <small>tensão × deslocamento do atuador</small></figcaption>
+            <svg id="tr-svg-maq" role="img"></svg>
+            <div class="ch-tip" hidden></div>
+          </figure>
+        </div>
         <p class="tr-nota" id="tr-nota"></p>
       </div>
       <aside class="ch-side">
         <h3>Média por grupo</h3>
         <table class="ch-mean tr-mean" id="tr-mean"></table>
         <p class="ch-note">Média ± desvio padrão amostral. E e Rp0,2 pelo extensômetro; Rm pela força máxima; A medido no CP após a fratura (ISO 6892-1, anexo H). Clique num grupo para isolá-lo.</p>
-        <p class="ch-note">Os CPs tratados têm E de ~140 GPa e a curva já é curva abaixo de 300 MPa, enquanto os sem tratamento dão ~200 GPa. Veja em “Região elástica”: pode ser efeito de montagem do extensômetro, a confirmar.</p>
+        <p class="ch-note">Os CPs tratados têm E de ~140 GPa e a curva já é curva abaixo de 300 MPa, enquanto os sem tratamento dão ~200 GPa. Veja no gráfico do extensômetro (clique num CP para ver a reta do módulo E e a de 0,2 %): pode ser efeito de montagem do extensômetro, a confirmar.</p>
       </aside>
     </div>
   </section>
@@ -891,17 +900,17 @@
 <div class="progress" id="progress"></div>
 <div class="hint"><kbd>←</kbd><kbd>→</kbd> navegar <span id="counter">1 / 1</span></div>
 
-<script src="dados/kit1.js"></script>
-<script src="dados/kit1-campos.js?v=1795537150"></script>
-<script src="js/kit1.js?v=1795537189"></script>
+<script src="dados/kit1.js?v=1795712617"></script>
+<script src="dados/kit1-campos.js?v=1795711615"></script>
+<script src="js/kit1.js?v=1795712939"></script>
 <script src="dados/charpy.js?v=1795634254"></script>
-<script src="dados/charpy-micro.js"></script>
-<script src="js/charpy.js?v=1795635873"></script>
-<script src="dados/tracao.js?v=1795634820"></script>
+<script src="dados/charpy-micro.js?v=1795647724"></script>
+<script src="js/charpy.js?v=1795720174"></script>
+<script src="dados/tracao.js?v=1795717061"></script>
 <script src="dados/tracao-curvas.js?v=1795634820"></script>
-<script src="js/tracao.js?v=1795635269"></script>
-<script src="dados/como-recebido.js?v=1795490769"></script>
-<script src="js/comorecebido.js?v=1795490769"></script>
+<script src="js/tracao.js?v=1795717106"></script>
+<script src="dados/como-recebido.js?v=1795714089"></script>
+<script src="js/comorecebido.js?v=1795714089"></script>
 <script>
   // Navegação simples por teclado / clique / toque. Novos slides = novas <section class="slide">.
   (function () {

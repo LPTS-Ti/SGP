@@ -54,3 +54,31 @@
 #tr-chart:not(.zoomed) .tr-zoom button[data-z="reset"] { opacity: .45; }
 .tr-zbox { position: absolute; z-index: 2; pointer-events: none; border: 1px dashed var(--accent); background: rgba(246, 98, 31, .08); }
 .tr-zoom-dica { color: var(--ink-3); }
+
+/* ===== dois gráficos empilhados: extensômetro (σ × ε) e máquina (σ × deslocamento) ===== */
+.tr-graficos { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.tr-graficos .tr-chart { flex: 1; min-height: 0; }
+.tr-graficos .tr-chart[hidden] { display: none; }
+.tr-vistas .f-lbl { align-self: center; margin-right: 4px; }
+.tr-chart { background: #fff; border-color: #d5dadf; position: relative; }
+.tr-chart .ax text { font-size: 13px; fill: #4a5560; }
+.tr-chart .ax .ttl, .tr-chart text.ttl { font-size: 15px; fill: #1f262d; font-weight: 500; }
+.tr-chart .grid { stroke: #e6e9ec; }
+.tr-chart .base { stroke: #8a949d; }
+.tr-chart .lbl { font-size: 13px; fill: #1f262d; font-weight: 500; }
+.tr-chart text.note { font-size: 12px; fill: #5f6b76; }
+.tr-chart .dim { opacity: .18; }
+.tr-chart svg { cursor: crosshair; touch-action: pan-y; user-select: none; }
+.tr-chart.zoomed svg { cursor: grab; }
+.tr-chart.panning svg { cursor: grabbing; }
+.tr-chart:not(.zoomed) .tr-zoom button[data-z="reset"] { opacity: .45; }
+.tr-gtit {
+  position: absolute; left: 78px; top: 8px; z-index: 2; pointer-events: none;
+  font-family: var(--sans); font-size: 13px; font-weight: 600; color: #1f262d;
+}
+.tr-gtit small { font-weight: 400; color: #5f6b76; margin-left: 6px; }
+.tr-zoom .tr-zpct { font-family: var(--mono); font-size: 11px; color: #5f6b76; align-self: center; min-width: 42px; text-align: right; margin-right: 2px; }
+@media (max-width: 860px) {
+  .tr-graficos { flex: none; }
+  .tr-graficos .tr-chart { height: 340px; flex: none; }
+}

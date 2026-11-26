@@ -1,6 +1,7 @@
 """Importa as micrografias quantificadas dos CPs Charpy para o site.
 
-Lê  Charpy Longitudinal/Quantificação Longitudinal/Selecionados Charpy/<cond>%/
+Lê  Charpy Longitudinal/Selecionados Charpy/<cond>%/
+    (ou, se não existir, Charpy Longitudinal/Quantificação Longitudinal/Selecionados Charpy/<cond>%/)
 onde cada CP tem três arquivos de mesmo nome, por exemplo:
     CP 36 CL +20C_007.jpg   micrografia original
     CP 36 CL +20C_007.png   quantificação (SVRNA)
@@ -23,13 +24,15 @@ import openpyxl
 from PIL import Image
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-PASTA = os.path.join(RAIZ, 'Charpy Longitudinal', 'Quantificação Longitudinal', 'Selecionados Charpy')
+PASTA = next((p for p in (os.path.join(RAIZ, 'Charpy Longitudinal', 'Selecionados Charpy'),
+                          os.path.join(RAIZ, 'Charpy Longitudinal', 'Quantificação Longitudinal', 'Selecionados Charpy'))
+              if os.path.isdir(p)), os.path.join(RAIZ, 'Charpy Longitudinal', 'Selecionados Charpy'))
 DEST = os.path.join(RAIZ, 'Site', 'assets', 'charpy')
 SAIDA = os.path.join(RAIZ, 'Site', 'dados', 'charpy-micro.js')
 LADO = 1200            # maior lado das imagens no site (px)
 FASE_SIGMA = 'BLUE'
 
-PADRAO = re.compile(r'CP\s*-?\s*(\d+)\s+([LC])\s*-?\s*([LC])\s+([+-]?\d+)\s*°?C', re.I)
+PADRAO = re.compile(r'CP\s*-?\s*(\d+)\s+([LC])\s*-?\s*([LC])\s+([+-]?\d+)(?:\s*°?C)?', re.I)
 
 
 def ler_planilha(caminho):
