@@ -107,3 +107,12 @@
 #tr-comp-chart .cat { font-size: 17px; fill: #1f262d; }
 #tr-comp-chart .cat-n { font-size: 14px; }
 #tr-comp-chart .ch-tip { font-size: 15px; }
+
+/* link para mostrar/ocultar a reta paralela de 0,2 % */
+.tr-toggle {
+  display: inline-flex; align-items: center; gap: 4px; margin: 0 4px;
+  font-family: var(--mono); font-size: 13px; color: var(--accent); text-decoration: none;
+  border: 1px solid rgba(246, 98, 31, .45); border-radius: 999px; padding: 2px 10px;
+}
+.tr-toggle:hover, .tr-toggle:focus-visible { background: rgba(246, 98, 31, .12); outline: none; }
+.tr-toggle:not(.on) { color: var(--ink-2); border-color: var(--line); }

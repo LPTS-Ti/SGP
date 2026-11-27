@@ -183,6 +183,14 @@
     maq: { id: 'tr-chart-maq', svg: 'tr-svg-maq', zoom: null, escala: null, pontos: [] },
   };
   let exibir = 'ext';
+  let mostrarParalela = true;     // linha de offset de 0,2 % (Rp0,2) no gráfico do extensômetro (link abaixo do gráfico)
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-tr-paralela]');
+    if (!a) return;
+    e.preventDefault();
+    mostrarParalela = !mostrarParalela;
+    renderGrafico();
+  });
   let arrastou = false;          // fim de um arraste não conta como clique (destaque)
   const visiveis = () => [exibir];
   const tipDe = (k) => $(GRAF[k].id).querySelector('.ch-tip');
@@ -369,7 +377,8 @@
     visiveis().forEach(desenhar);
     const nota = $('tr-nota');
     nota.innerHTML = [
-      visiveis().includes('ext') && '<b>Extensômetro:</b> ◆ Rp0,2 · <span class="prop-leg">╌ linha de proporcionalidade (módulo E)</span> · clique num CP para ver a reta deslocada de 0,2 %',
+      visiveis().includes('ext') && `<b>Extensômetro:</b> ◆ Rp0,2 · <a href="#" class="tr-toggle${mostrarParalela ? ' on' : ''}" data-tr-paralela role="button" aria-pressed="${mostrarParalela}">${mostrarParalela ? '◼ Ocultar' : '◻ Mostrar'} linha de offset (0,2 %)</a>` +
+        (mostrarParalela ? ' <span class="prop-leg">(╌ método do offset: paralela ao trecho elástico deslocada de 0,2 % de deformação; a interseção com a curva define o limite de escoamento convencional Rp0,2 — ISO 6892-1 · do CP destacado; clique numa curva para trocar o CP)</span>' : ''),
       visiveis().includes('maq') && '<b>Máquina:</b> ○ retirada do extensômetro · ■ força máxima (Rm) · ensaio completo até a ruptura',
     ].filter(Boolean).join('<br>') +
       '<br><span class="tr-zoom-dica">Zoom: roda do mouse sobre o ponto desejado · arrastar move o gráfico ampliado · Shift+arrastar amplia uma área · duplo clique ou "Ajustar" volta a 100 %</span>';
@@ -456,21 +465,17 @@
       svgEl('path', { d: path(xs, ys), fill: 'none', stroke: cor, 'stroke-width': larg, 'stroke-dasharray': dash, 'stroke-linejoin': 'round' }, g);
 
       if (ext) {
-        // linha de proporcionalidade (σ = E·ε + b) e Rp0,2
-        if (s.p.E && s.p.Rp02) {
+        // uma única reta paralela ao trecho elástico (módulo E), deslocada de 0,2 % de deformação:
+        //   σ = E·(ε − 0,2 %) + b → cruza a curva no Rp0,2 (◆). É a do CP destacado ou, sem destaque,
+        //   a do primeiro CP visível. Vai de σ = 0 até um pouco acima do Rp0,2.
+        const cpReta = destaque && series.some(x => x.c.cp === destaque) ? destaque : series[0].c.cp;
+        if (mostrarParalela && c.cp === cpReta && s.p.E && s.p.Rp02) {
           const E = s.p.E * 1000 / 100, b = (c.calc.E_b || 0) * (c.calc.S0 / s.p.S0);   // MPa por %
-          const sTop = s.p.Rp02 * 1.15;
-          svgEl('line', { x1: x(Math.max(0, -b / E)), y1: y(Math.max(0, b)), x2: x((sTop - b) / E), y2: y(sTop),
-            stroke: cor, 'stroke-width': destaque === c.cp ? 1.6 : 1.1, 'stroke-dasharray': '5 4', opacity: .8, class: 'prop' }, g);
-          // CP destacado (ou único): reta deslocada de 0,2 % e janela do ajuste de E
-          if (destaque === c.cp || series.length === 1) {
-            const ge = svgEl('g', { 'clip-path': `url(#${clipId})` }, svg);
-            svgEl('line', { x1: x(0.2 - b / E), y1: y(0), x2: x(0.2 + (sTop - b) / E), y2: y(sTop), stroke: '#3a444d', 'stroke-width': 1.2, 'stroke-dasharray': '4 3' }, ge);
-            const jx = c.calc.E_janela_MPa, kS = c.calc.S0 / s.p.S0;
-            [jx[0] * kS, jx[1] * kS].forEach(v => svgEl('line', { x1: M.l, x2: M.l + iw, y1: y(v), y2: y(v), stroke: '#8a949d', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, ge));
-            svgEl('text', { x: M.l + iw - 4, y: y(jx[1] * kS) - 5, 'text-anchor': 'end', class: 'note' }, ge).textContent = `janela do ajuste de E: ${jx[0]}–${jx[1]} MPa`;
-            svgEl('text', { x: x(0.2 + (sTop * .55 - b) / E) + 8, y: y(sTop * .55), class: 'note' }, ge).textContent = 'reta deslocada 0,2 %';
-          }
+          const sTop = s.p.Rp02 * 1.08;
+          const ge = svgEl('g', { 'clip-path': `url(#${clipId})` }, svg);
+          svgEl('line', { x1: x(0.2 - b / E), y1: y(0), x2: x(0.2 + (sTop - b) / E), y2: y(sTop),
+            stroke: cor, 'stroke-width': 1.8, 'stroke-dasharray': '6 4', class: 'prop' }, ge);
+          svgEl('text', { x: x(0.2 + (sTop * .45 - b) / E) + 10, y: y(sTop * .45), class: 'note' }, ge).textContent = `offset 0,2 % · ${c.cp}`;
         }
         if (s.p.Rp02 && c.calc.Rp02_def != null) {
           svgEl('path', { d: `M${x(c.calc.Rp02_def)},${y(s.p.Rp02) - 5}l5,5l-5,5l-5,-5z`, fill: cor, stroke: FUNDO, 'stroke-width': 1 }, g);
