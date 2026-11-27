@@ -82,3 +82,28 @@
   .tr-graficos { flex: none; }
   .tr-graficos .tr-chart { height: 340px; flex: none; }
 }
+
+/* modo "Ambos": cada gráfico com altura própria (sem achatar), um abaixo do outro; a coluna rola */
+.tr-graficos.dois { overflow-y: auto; padding-right: 6px; scroll-snap-type: y mandatory; }
+.tr-graficos.dois .tr-chart { flex: none; height: 100%; min-height: 340px; scroll-snap-align: start; }
+@media (max-width: 860px) { .tr-graficos.dois .tr-chart { height: 360px; } }
+
+/* ===== fontes maiores no gráfico de curvas (legível ao compartilhar a tela) =====
+   seletores pelo id para vencer as regras antigas "#tr-chart ..." */
+#tr-chart .ax text, #tr-chart-maq .ax text { font-size: 17px; fill: #39434d; }
+#tr-chart .ax .ttl, #tr-chart text.ttl, #tr-chart-maq .ax .ttl, #tr-chart-maq text.ttl { font-size: 19px; fill: #1f262d; font-weight: 600; }
+#tr-chart .lbl, #tr-chart-maq .lbl { font-size: 16px; font-weight: 600; }
+#tr-chart text.note, #tr-chart-maq text.note { font-size: 15px; }
+#tr-chart .tr-gtit, #tr-chart-maq .tr-gtit { font-size: 17px; left: 100px; top: 12px; }
+#tr-chart .tr-gtit small, #tr-chart-maq .tr-gtit small { font-size: 15px; }
+#tr-chart .ch-tip, #tr-chart-maq .ch-tip { font-size: 15px; line-height: 1.5; }
+#tr-chart .ch-tip b, #tr-chart .ch-tip .tv, #tr-chart-maq .ch-tip b, #tr-chart-maq .ch-tip .tv { font-size: 16px; }
+#tr-chart .tr-zoom .tr-zpct, #tr-chart-maq .tr-zoom .tr-zpct { font-size: 13px; }
+#tr-chart .tr-zoom button, #tr-chart-maq .tr-zoom button { font-size: 15px; height: 32px; min-width: 34px; }
+#tr-chart .tr-zoom button[data-z="reset"], #tr-chart-maq .tr-zoom button[data-z="reset"] { font-size: 13px; }
+#tr-comp-chart .ax text { font-size: 17px; fill: #39434d; }
+#tr-comp-chart .ax .ttl, #tr-comp-chart text.ttl { font-size: 19px; fill: #1f262d; font-weight: 600; }
+#tr-comp-chart .lbl { font-size: 16px; font-weight: 600; }
+#tr-comp-chart .cat { font-size: 17px; fill: #1f262d; }
+#tr-comp-chart .cat-n { font-size: 14px; }
+#tr-comp-chart .ch-tip { font-size: 15px; }

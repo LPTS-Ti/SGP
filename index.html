@@ -7,8 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="css/kit1.css?v=1795712939">
-<link rel="stylesheet" href="css/charpy.css?v=1795720174">
-<link rel="stylesheet" href="css/tracao.css?v=1795716095">
+<link rel="stylesheet" href="css/charpy.css?v=1795786018">
+<link rel="stylesheet" href="css/tracao.css?v=1795781672">
+<link rel="stylesheet" href="css/ctod.css?v=1795781672">
 <link rel="stylesheet" href="css/comorecebido.css?v=1795714089">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -518,7 +519,7 @@
             <span class="ag-ico" aria-hidden="true"><img src="assets/icones/ctod.png" alt=""></span>
             <div>
               <h3>CTOD<span class="arrow" aria-hidden="true">→</span></h3>
-              <p>Tenacidade à fratura: pré-trinca, medição da trinca e superfícies de fratura.</p>
+              <p>Tenacidade à fratura (ISO 12135): curvas força × CMOD, resultados, comparação e fractografia.</p>
             </div>
           </a>
         </li>
@@ -762,9 +763,8 @@
       <div class="tr-left">
         <div class="tr-vistas" id="tr-exibir" role="group" aria-label="Gráficos exibidos">
           <span class="f-lbl">Exibir</span>
-          <button type="button" class="chip" data-x="ext" aria-pressed="false">Extensômetro</button>
+          <button type="button" class="chip on" data-x="ext" aria-pressed="true">Extensômetro</button>
           <button type="button" class="chip" data-x="maq" aria-pressed="false">Máquina (deslocamento)</button>
-          <button type="button" class="chip on" data-x="ambos" aria-pressed="true">Ambos</button>
         </div>
         <div class="tr-graficos">
           <figure class="ch-chart tr-chart" id="tr-chart" data-g="ext" aria-label="Tensão × deformação medida pelo extensômetro">
@@ -855,16 +855,101 @@
   </section>
 
   <!-- ===================== SEÇÃO 05 · CTOD ===================== -->
-  <section class="slide inner divider" data-id="ctod" data-title="CTOD">
-    <header class="slide-head reveal d1">
+  <!-- ===================== SEÇÃO 05 · CTOD (dados em dados/ctod.js e dados/ctod-curvas.js, lógica em js/ctod.js) ===================== -->
+  <section class="slide inner ct-slide" data-id="ctod" data-title="CTOD · Visão geral">
+    <header class="slide-head">
       <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
       <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
     </header>
-    <div class="divider-body">
-      <span class="divider-num reveal d1">05</span>
-      <h2 class="reveal d2">CTOD</h2>
-      <p class="lede reveal d3">Tenacidade à fratura: pré-trinca, medição da trinca e superfícies de fratura.</p>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">05 · CTOD · Crack Tip Opening Displacement</p>
+        <h2>Tenacidade à fratura — CTOD</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Seção CTOD"><a href="#ctod" data-goto="ctod" class="on">Visão geral</a><a href="#ctod-curvas" data-goto="ctod-curvas">Curvas</a><a href="#ctod-resultados" data-goto="ctod-resultados">Resultados</a><a href="#ctod-comp" data-goto="ctod-comp">Comparação</a><a href="#ctod-fratura" data-goto="ctod-fratura">Fractografia</a></nav>
     </div>
+    <div class="ch-filters" data-ct-filtros></div>
+    <div class="ct-scroll" id="ct-geral"></div>
+  </section>
+  <section class="slide inner ct-slide" data-id="ctod-curvas" data-title="CTOD · Curvas experimentais">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">05 · Tenacidade à fratura — CTOD</p>
+        <h2>Curvas experimentais</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Seção CTOD"><a href="#ctod" data-goto="ctod">Visão geral</a><a href="#ctod-curvas" data-goto="ctod-curvas" class="on">Curvas</a><a href="#ctod-resultados" data-goto="ctod-resultados">Resultados</a><a href="#ctod-comp" data-goto="ctod-comp">Comparação</a><a href="#ctod-fratura" data-goto="ctod-fratura">Fractografia</a></nav>
+    </div>
+    <div class="ch-filters" data-ct-filtros></div>
+    <div class="ch-body ct-body">
+      <div class="tr-left">
+        <div class="tr-vistas" id="ct-vistas" role="group" aria-label="Tipo de gráfico">
+          <span class="f-lbl">Gráfico</span>
+          <button type="button" class="chip on" data-v="FV">Força × CMOD</button>
+          <button type="button" class="chip" data-v="Fd">Força × deslocamento</button>
+          <button type="button" class="chip" data-v="Ft">Força × tempo</button>
+          <button type="button" class="chip" data-v="Vt">CMOD × tempo</button>
+          <span class="ct-opts">
+            <label class="chk"><input type="checkbox" id="ct-constr" checked> Construções da norma</label>
+            <label class="chk"><input type="checkbox" id="ct-popins" checked> Candidatos a pop-in</label>
+          </span>
+        </div>
+        <figure class="ch-chart tr-chart ct-chart" id="ct-chart" aria-label="Curvas do ensaio de CTOD">
+          <svg id="ct-svg" role="img"></svg>
+          <div class="ch-tip" hidden></div>
+        </figure>
+        <p class="tr-nota" id="ct-nota"></p>
+      </div>
+      <aside class="ch-side ct-side" id="ct-side"></aside>
+    </div>
+  </section>
+  <section class="slide inner ct-slide" data-id="ctod-resultados" data-title="CTOD · Resultados individuais">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">05 · Tenacidade à fratura — CTOD</p>
+        <h2>Resultados individuais</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Seção CTOD"><a href="#ctod" data-goto="ctod">Visão geral</a><a href="#ctod-curvas" data-goto="ctod-curvas">Curvas</a><a href="#ctod-resultados" data-goto="ctod-resultados" class="on">Resultados</a><a href="#ctod-comp" data-goto="ctod-comp">Comparação</a><a href="#ctod-fratura" data-goto="ctod-fratura">Fractografia</a></nav>
+    </div>
+    <div class="ch-filters" data-ct-filtros></div>
+    <div class="ct-scroll" id="ct-res"></div>
+  </section>
+  <section class="slide inner ct-slide" data-id="ctod-comp" data-title="CTOD · Comparação e correlações">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">05 · Tenacidade à fratura — CTOD</p>
+        <h2>Comparação entre condições</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Seção CTOD"><a href="#ctod" data-goto="ctod">Visão geral</a><a href="#ctod-curvas" data-goto="ctod-curvas">Curvas</a><a href="#ctod-resultados" data-goto="ctod-resultados">Resultados</a><a href="#ctod-comp" data-goto="ctod-comp" class="on">Comparação</a><a href="#ctod-fratura" data-goto="ctod-fratura">Fractografia</a></nav>
+    </div>
+    <div class="ch-filters" data-ct-filtros></div>
+    <div class="ct-scroll" id="ct-comp"></div>
+  </section>
+  <section class="slide inner ct-slide" data-id="ctod-fratura" data-title="CTOD · Análise fractográfica">
+    <header class="slide-head">
+      <img class="logo-sm" src="assets/logo-lpts-claro.png" alt="LPTS">
+      <a class="back" href="#sumario" data-goto="sumario">← Sumário</a>
+    </header>
+    <div class="ch-top">
+      <div>
+        <p class="kicker">05 · Tenacidade à fratura — CTOD</p>
+        <h2>Análise fractográfica</h2>
+      </div>
+      <nav class="cond-tabs ch-views" aria-label="Seção CTOD"><a href="#ctod" data-goto="ctod">Visão geral</a><a href="#ctod-curvas" data-goto="ctod-curvas">Curvas</a><a href="#ctod-resultados" data-goto="ctod-resultados">Resultados</a><a href="#ctod-comp" data-goto="ctod-comp">Comparação</a><a href="#ctod-fratura" data-goto="ctod-fratura" class="on">Fractografia</a></nav>
+    </div>
+    <div class="ch-filters" data-ct-filtros></div>
+    <div class="ct-scroll" id="ct-frat"></div>
   </section>
 
   <!-- ===================== SEÇÃO 06 · GLEEBLE ===================== -->
@@ -900,17 +985,20 @@
 <div class="progress" id="progress"></div>
 <div class="hint"><kbd>←</kbd><kbd>→</kbd> navegar <span id="counter">1 / 1</span></div>
 
-<script src="dados/kit1.js?v=1795712617"></script>
-<script src="dados/kit1-campos.js?v=1795711615"></script>
+<script src="dados/kit1.js?v=1795785504"></script>
+<script src="dados/kit1-campos.js?v=1795785396"></script>
 <script src="js/kit1.js?v=1795712939"></script>
 <script src="dados/charpy.js?v=1795634254"></script>
 <script src="dados/charpy-micro.js?v=1795647724"></script>
-<script src="js/charpy.js?v=1795720174"></script>
+<script src="js/charpy.js?v=1795786018"></script>
 <script src="dados/tracao.js?v=1795717061"></script>
 <script src="dados/tracao-curvas.js?v=1795634820"></script>
-<script src="js/tracao.js?v=1795717106"></script>
+<script src="js/tracao.js?v=1795781672"></script>
 <script src="dados/como-recebido.js?v=1795714089"></script>
 <script src="js/comorecebido.js?v=1795714089"></script>
+<script src="dados/ctod.js?v=1795726333"></script>
+<script src="dados/ctod-curvas.js?v=1795726333"></script>
+<script src="js/ctod.js?v=1795781747"></script>
 <script>
   // Navegação simples por teclado / clique / toque. Novos slides = novas <section class="slide">.
   (function () {

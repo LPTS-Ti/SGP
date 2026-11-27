@@ -169,7 +169,7 @@
    * n_ext marca onde termina o trecho com extensômetro.
    *   ext: tensão × deformação, só com os dados do extensômetro
    *   maq: tensão × deslocamento do atuador, o ensaio inteiro até a ruptura
-   * Exibir: só um, só o outro ou os dois (extensômetro em cima, máquina embaixo).
+   * Exibir: um gráfico de cada vez — extensômetro ou máquina.
    *
    * Zoom (cada gráfico tem o seu):
    *   roda do mouse: amplia/reduz mantendo fixo o ponto sob o cursor
@@ -182,9 +182,9 @@
     ext: { id: 'tr-chart', svg: 'tr-svg', zoom: null, escala: null, pontos: [] },
     maq: { id: 'tr-chart-maq', svg: 'tr-svg-maq', zoom: null, escala: null, pontos: [] },
   };
-  let exibir = 'ambos';
+  let exibir = 'ext';
   let arrastou = false;          // fim de um arraste não conta como clique (destaque)
-  const visiveis = () => exibir === 'ambos' ? ['ext', 'maq'] : [exibir];
+  const visiveis = () => [exibir];
   const tipDe = (k) => $(GRAF[k].id).querySelector('.ch-tip');
 
   function aplicarExibir() {
@@ -193,6 +193,8 @@
       b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
     });
     for (const k in GRAF) $(GRAF[k].id).hidden = !visiveis().includes(k);
+    // um gráfico só: ocupa a área toda; os dois: cada um com altura própria, um abaixo do outro (a coluna rola)
+    document.querySelector('.tr-graficos')?.classList.toggle('dois', visiveis().length > 1);
   }
   document.addEventListener('click', (e) => {
     const b = e.target.closest('#tr-exibir button[data-x]');
@@ -382,7 +384,7 @@
     svg.innerHTML = '';
     G.pontos = [];
     const cps = data.cps.filter(visivel);
-    const M = { l: 72, r: 76, t: 34, b: 54 };
+    const M = { l: 96, r: 92, t: 46, b: 76 };   // margens para fontes grandes (compartilhamento de tela)
     const iw = W - M.l - M.r, ih = H - M.t - M.b;
     const ext = k === 'ext';
 
@@ -398,14 +400,14 @@
     // vista inteira (100 %)
     let X1 = Math.max(ext ? 0.1 : 1, ...series.map(s => Math.max(...s.xs))) * 1.03;
     let Y1 = Math.max(100, ...series.map(s => Math.max(...s.ys))) * 1.08;
-    let px = passoBom(X1, Math.max(3, Math.min(10, iw / 75))), py = passoBom(Y1, Math.max(4, Math.min(8, ih / 45)));
+    let px = passoBom(X1, Math.max(3, Math.min(10, iw / 95))), py = passoBom(Y1, Math.max(4, Math.min(8, ih / 55)));
     X1 = Math.ceil(X1 / px) * px; Y1 = Math.ceil(Y1 / py) * py;
     const base = { X0: 0, X1, Y0: 0, Y1 };
     let X0 = 0, Y0 = 0;
     if (G.zoom) {
       ({ x0: X0, x1: X1, y0: Y0, y1: Y1 } = G.zoom);
-      px = passoBom(X1 - X0, Math.max(3, Math.min(10, iw / 75)));
-      py = passoBom(Y1 - Y0, Math.max(4, Math.min(8, ih / 45)));
+      px = passoBom(X1 - X0, Math.max(3, Math.min(10, iw / 95)));
+      py = passoBom(Y1 - Y0, Math.max(4, Math.min(8, ih / 55)));
     }
     G.escala = { M, iw, ih, X0, X1, Y0, Y1, base };
     tipDe(k).hidden = true;
@@ -421,17 +423,17 @@
     for (let j = Math.ceil(Y0 / py - 1e-9); j * py <= Y1 + 1e-9; j++) {
       const v = (j * py) || 0;
       svgEl('line', { x1: M.l, x2: M.l + iw, y1: y(v), y2: y(v), class: Math.abs(v) < 1e-9 ? 'base' : 'grid' }, g0);
-      svgEl('text', { x: M.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, g0).textContent = br(v, dy);
+      svgEl('text', { x: M.l - 10, y: y(v) + 6, 'text-anchor': 'end' }, g0).textContent = br(v, dy);
     }
     if (Y0 > 0) svgEl('line', { x1: M.l, x2: M.l + iw, y1: M.t + ih, y2: M.t + ih, class: 'base' }, g0);
     for (let j = Math.ceil(X0 / px - 1e-9); j * px <= X1 + 1e-9; j++) {
       const v = (j * px) || 0;
       svgEl('line', { x1: x(v), x2: x(v), y1: M.t + ih, y2: M.t + ih + 5, class: 'base' }, g0);
-      svgEl('text', { x: x(v), y: M.t + ih + 23, 'text-anchor': 'middle' }, g0).textContent = br(v, dx);
+      svgEl('text', { x: x(v), y: M.t + ih + 30, 'text-anchor': 'middle' }, g0).textContent = br(v, dx);
     }
-    svgEl('text', { x: M.l + iw / 2, y: H - 6, 'text-anchor': 'middle', class: 'ttl' }, g0).textContent =
+    svgEl('text', { x: M.l + iw / 2, y: H - 12, 'text-anchor': 'middle', class: 'ttl' }, g0).textContent =
       ext ? 'Deformação de engenharia (%) · extensômetro' : 'Deslocamento do atuador (mm) · dados da máquina';
-    svgEl('text', { x: 16, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 16 ${M.t + ih / 2})` }, g0).textContent = 'Tensão de engenharia (MPa)';
+    svgEl('text', { x: 24, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 24 ${M.t + ih / 2})` }, g0).textContent = 'Tensão de engenharia (MPa)';
 
     if (!series.length) {
       svgEl('text', { x: M.l + iw / 2, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl' }, svg).textContent = 'Nenhum CP com os filtros atuais';
@@ -509,22 +511,22 @@
     if (G.zoom) {
       const postos = [];
       rot.forEach(r => {
-        r.x = limitar(r.x + 6, M.l + 4, M.l + iw - 44);
+        r.x = limitar(r.x + 6, M.l + 4, M.l + iw - 56);
         r.y = limitar(r.y + 12, M.t + 12, M.t + ih - 6);
-        while (postos.some(p => Math.abs(p.x - r.x) < 44 && Math.abs(p.y - r.y) < 14)) r.y += 14;
+        while (postos.some(p => Math.abs(p.x - r.x) < 56 && Math.abs(p.y - r.y) < 18)) r.y += 18;
         postos.push(r);
       });
     } else {
       // se os rótulos empilhados não cabem na altura do gráfico, fica só o do CP destacado
-      const gap = 15;
+      const gap = 19;
       if (rot.length * gap > ih + M.b * .5) rot.splice(0, rot.length, ...rot.filter(r => r.cp === destaque));
       for (let i = 1; i < rot.length; i++) if (rot[i].y - rot[i - 1].y < gap) rot[i].y = rot[i - 1].y + gap;
       const sobra = rot.length ? rot[rot.length - 1].y - (M.t + ih) : 0;
       if (sobra > 0) rot.forEach(r => { r.y -= sobra; });
-      rot.forEach(r => { r.x = Math.min(r.x + 8, W - 54); });
+      rot.forEach(r => { r.x = Math.min(r.x + 8, W - 66); });
     }
     rot.forEach(r => {
-      svgEl('text', { x: r.x, y: r.y + 4, class: 'lbl' + (destaque && destaque !== r.cp ? ' dim' : ''), 'data-cp': r.cp }, gl).textContent = r.cp;
+      svgEl('text', { x: r.x, y: r.y + 5, class: 'lbl' + (destaque && destaque !== r.cp ? ' dim' : ''), 'data-cp': r.cp }, gl).textContent = r.cp;
     });
   }
 
@@ -712,7 +714,7 @@ window.DADOS_TRACAO = ${JSON.stringify(data, null, 1)};
     const linhas = cps.map(c => ({ c, p: props(c) }));
     const comY = linhas.filter(l => l.p[comp.y] != null);
     const semY = linhas.length - comY.length;
-    const M = { l: 76, r: 28, t: 18, b: comp.modo === 'xy' ? 54 : 70 };
+    const M = { l: 96, r: 34, t: 22, b: comp.modo === 'xy' ? 76 : 92 };
     const iw = W - M.l - M.r, ih = H - M.t - M.b;
     const g0 = svgEl('g', { class: 'ax' }, svg);
     const nota = $('tr-comp-nota');
@@ -721,9 +723,9 @@ window.DADOS_TRACAO = ${JSON.stringify(data, null, 1)};
       for (let v = fx.lo; v <= fx.hi + 1e-9; v += fx.st) {
         const Y = M.t + ih - (v - fx.lo) / (fx.hi - fx.lo) * ih;
         svgEl('line', { x1: M.l, x2: M.l + iw, y1: Y, y2: Y, class: 'grid' }, g0);
-        svgEl('text', { x: M.l - 8, y: Y + 4, 'text-anchor': 'end' }, g0).textContent = br(v, fx.st < 1 ? 1 : 0);
+        svgEl('text', { x: M.l - 10, y: Y + 6, 'text-anchor': 'end' }, g0).textContent = br(v, fx.st < 1 ? 1 : 0);
       }
-      svgEl('text', { x: 16, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 16 ${M.t + ih / 2})` }, g0).textContent = `${py.nome} (${py.un})`;
+      svgEl('text', { x: 24, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 24 ${M.t + ih / 2})` }, g0).textContent = `${py.nome} (${py.un})`;
     };
     const vazio = (msg) => { svgEl('text', { x: M.l + iw / 2, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl' }, svg).textContent = msg; };
 
@@ -740,8 +742,8 @@ window.DADOS_TRACAO = ${JSON.stringify(data, null, 1)};
       chaves.forEach((k, gi) => {
         const cx = M.l + bw * (gi + .5), ls = comY.filter(l => ag.chave(l.c) === k);
         const nTot = linhas.filter(l => ag.chave(l.c) === k).length;
-        svgEl('text', { x: cx, y: M.t + ih + 22, 'text-anchor': 'middle', class: 'cat' }, g0).textContent = ag.rot(k);
-        svgEl('text', { x: cx, y: M.t + ih + 40, 'text-anchor': 'middle', class: 'cat-n' }, g0).textContent = `n = ${ls.length}${ls.length < nTot ? ` de ${nTot}` : ''}`;
+        svgEl('text', { x: cx, y: M.t + ih + 28, 'text-anchor': 'middle', class: 'cat' }, g0).textContent = ag.rot(k);
+        svgEl('text', { x: cx, y: M.t + ih + 52, 'text-anchor': 'middle', class: 'cat-n' }, g0).textContent = `n = ${ls.length}${ls.length < nTot ? ` de ${nTot}` : ''}`;
         const st = stats(ls.map(l => l.p[comp.y]));
         const cores = [...new Set(ls.map(l => corDe(l.c)))];
         const corG = cores.length === 1 ? cores[0] : '#3a444d';
@@ -779,14 +781,14 @@ window.DADOS_TRACAO = ${JSON.stringify(data, null, 1)};
       eixoY(fy);
       for (let v = fxx.lo; v <= fxx.hi + 1e-9; v += fxx.st) {
         svgEl('line', { x1: X(v), x2: X(v), y1: M.t, y2: M.t + ih, class: 'grid' }, g0);
-        svgEl('text', { x: X(v), y: M.t + ih + 22, 'text-anchor': 'middle' }, g0).textContent = br(v, fxx.st < 1 ? 1 : 0);
+        svgEl('text', { x: X(v), y: M.t + ih + 30, 'text-anchor': 'middle' }, g0).textContent = br(v, fxx.st < 1 ? 1 : 0);
       }
-      svgEl('text', { x: M.l + iw / 2, y: H - 6, 'text-anchor': 'middle', class: 'ttl' }, g0).textContent = `${px.nome} (${px.un})`;
+      svgEl('text', { x: M.l + iw / 2, y: H - 12, 'text-anchor': 'middle', class: 'ttl' }, g0).textContent = `${px.nome} (${px.un})`;
       const g = svgEl('g', {}, svg);
       ok.forEach(l => {
         const cx = X(l.p[comp.x]), cy = Y(l.p[comp.y]);
         marca(g, l.c.dir, cx, cy, 6, { fill: corDe(l.c), stroke: FUNDO, 'stroke-width': 1.5 });
-        svgEl('text', { x: cx + 9, y: cy + 4, class: 'lbl' }, g).textContent = l.c.cp;
+        svgEl('text', { x: cx + 10, y: cy + 5, class: 'lbl' }, g).textContent = l.c.cp;
         const hit = svgEl('circle', { cx, cy, r: 11, class: 'hit' }, g);
         hit.dataset.tip = `<b>${esc(l.c.cp)}</b> · ${esc(grupoNome(grupo(l.c)))}<br>${esc(py.curto)} <span class="tv">${br(l.p[comp.y], py.d)} ${py.un}</span><br>${esc(px.curto)} <span class="tv">${br(l.p[comp.x], px.d)} ${px.un}</span>`;
       });

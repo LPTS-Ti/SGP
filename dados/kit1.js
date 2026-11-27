@@ -22,10 +22,10 @@ window.DADOS_KIT1 = {
     },
     {
       "id": "6", "rotulo": "6%",
-      "mo":     { "media": null, "dp": null },
+      "mo":     { "media": 5.89, "dp": 0.3841 },
       "mev":    { "media": 3.829666667, "dp": 1.240157063 },
       "ferrito":{ "media": 30.2, "dp": null },
-      "situacao": "Quantificação por MO pendente"
+      "situacao": "MO: média informada pela equipe (5,89 %)"
     }
   ]
 };

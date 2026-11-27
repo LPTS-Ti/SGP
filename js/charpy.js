@@ -272,7 +272,7 @@
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.innerHTML = '';
     const ss = series();
-    const M = { l: 66, r: 104, t: 16, b: 54 };
+    const M = { l: 88, r: 128, t: 20, b: 76 };   // margens para fontes grandes
     const iw = W - M.l - M.r, ih = H - M.t - M.b;
 
     let ymax = 10;
@@ -302,7 +302,7 @@
     for (let k = Math.ceil(Y0 / passo - 1e-9); k * passo <= Y1 + 1e-9; k++) {
       const v = (k * passo) || 0;
       svgEl('line', { x1: M.l - 5, x2: M.l, y1: y(v), y2: y(v), class: 'base' }, g0);
-      const t = svgEl('text', { x: M.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, g0); t.textContent = br(v, 0);
+      const t = svgEl('text', { x: M.l - 10, y: y(v) + 6, 'text-anchor': 'end' }, g0); t.textContent = br(v, 0);
     }
     // temperaturas: as do ensaio na vista inteira; com zoom, marcas regulares dentro da faixa
     const spanX = X1 - X0, px = spanX > 60 ? 10 : spanX > 25 ? 5 : spanX > 10 ? 2 : 1;
@@ -311,12 +311,12 @@
       : [-50, -20, 0, 20];
     tempsX.forEach(t => {
       svgEl('line', { x1: x(t), x2: x(t), y1: M.t + ih, y2: M.t + ih + 5, class: 'base' }, g0);
-      const tx = svgEl('text', { x: x(t), y: M.t + ih + 23, 'text-anchor': 'middle' }, g0); tx.textContent = tempTxt(t).replace(' °C', '');
+      const tx = svgEl('text', { x: x(t), y: M.t + ih + 30, 'text-anchor': 'middle' }, g0); tx.textContent = tempTxt(t).replace(' °C', '');
     });
     const clip = svgEl('clipPath', { id: 'ch-clip' }, svgEl('defs', {}, svg));
     svgEl('rect', { x: M.l, y: M.t - 6, width: iw + 6, height: ih + 6 }, clip);
-    const lx = svgEl('text', { x: M.l + iw / 2, y: H - 6, 'text-anchor': 'middle', class: 'ttl' }, g0); lx.textContent = 'Temperatura de ensaio (°C)';
-    const ly = svgEl('text', { x: 16, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 16 ${M.t + ih / 2})` }, g0); ly.textContent = 'Energia absorvida (J)';
+    const lx = svgEl('text', { x: M.l + iw / 2, y: H - 12, 'text-anchor': 'middle', class: 'ttl' }, g0); lx.textContent = 'Temperatura de ensaio (°C)';
+    const ly = svgEl('text', { x: 24, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl', transform: `rotate(-90 24 ${M.t + ih / 2})` }, g0); ly.textContent = 'Energia absorvida (J)';
 
     if (!ss.length) {
       const t = svgEl('text', { x: M.l + iw / 2, y: M.t + ih / 2, 'text-anchor': 'middle', class: 'ttl' }, svg);
@@ -373,15 +373,15 @@
     const gl = svgEl('g', { class: 'lbls' }, svg);
     // séries que não chegam a +20 °C: rótulo ao lado do próprio ponto
     rotulos.filter(r => r.solto).forEach(r => {
-      const t = svgEl('text', { x: r.x + 12, y: r.y + 4, class: 'lbl' + dim(r.k), 'data-k': r.k }, gl);
+      const t = svgEl('text', { x: r.x + 12, y: r.y + 5, class: 'lbl' + dim(r.k), 'data-k': r.k }, gl);
       t.textContent = r.txt;
     });
     const fim = rotulos.filter(r => !r.solto).sort((a, b) => a.y - b.y);
-    for (let i = 1; i < fim.length; i++) if (fim[i].y - fim[i - 1].y < 17) fim[i].y = fim[i - 1].y + 17;
+    for (let i = 1; i < fim.length; i++) if (fim[i].y - fim[i - 1].y < 21) fim[i].y = fim[i - 1].y + 21;
     fim.forEach(r => {
       const lx0 = Math.max(r.x + 12, M.l + iw + 10);
       svgEl('line', { x1: r.x + 7, x2: lx0 - 3, y1: r.y, y2: r.y, stroke: r.cor, 'stroke-width': 1, opacity: .5, class: dim(r.k).trim() }, gl);
-      const t = svgEl('text', { x: lx0, y: r.y + 4, class: 'lbl' + dim(r.k), 'data-k': r.k }, gl);
+      const t = svgEl('text', { x: lx0, y: r.y + 5, class: 'lbl' + dim(r.k), 'data-k': r.k }, gl);
       t.textContent = r.txt;
     });
     renderMedias(ss);
@@ -411,10 +411,11 @@
 
   function renderMedias(ss) {
     const t = $('ch-mean');
-    t.innerHTML = `<thead><tr><th>Série</th>${TEMPS.map(x => `<th>${tempTxt(x)}</th>`).join('')}</tr></thead>
+    t.innerHTML = `<colgroup><col class="c-serie">${TEMPS.map(() => '<col>').join('')}</colgroup>
+      <thead><tr><th>Série</th>${TEMPS.map(x => `<th>${tempTxt(x)}</th>`).join('')}</tr></thead>
       <tbody>${ss.map(s => `<tr data-k="${s.key}" class="${destaque && destaque !== s.key ? 'dim' : ''} ${destaque === s.key ? 'sel' : ''}">
-        <td><svg class="ls" viewBox="0 0 26 10" aria-hidden="true" style="stroke:${COND[s.cond]?.cor};fill:${COND[s.cond]?.cor}"><line x1="1" y1="5" x2="25" y2="5" stroke-dasharray="${ORIENT[s.orient].dash}"/>${s.orient === 'L-C' ? '<circle cx="13" cy="5" r="3.5"/>' : '<rect x="9.5" y="1.5" width="7" height="7"/>'}</svg>${esc(COND[s.cond]?.curto ?? s.cond + '%')} ${s.orient}</td>
-        ${TEMPS.map(tt => { const p = s.pontos.find(q => q.t === tt); return `<td>${p ? `${br(p.st.m, 1)}${p.st.sd ? `<small> ± ${br(p.st.sd, 1)}</small>` : ''}` : '<span class="nd">—</span>'}</td>`; }).join('')}
+        <td><span class="ser"><svg class="ls" viewBox="0 0 26 10" aria-hidden="true" style="stroke:${COND[s.cond]?.cor};fill:${COND[s.cond]?.cor}"><line x1="1" y1="5" x2="25" y2="5" stroke-dasharray="${ORIENT[s.orient].dash}"/>${s.orient === 'L-C' ? '<circle cx="13" cy="5" r="3.5"/>' : '<rect x="9.5" y="1.5" width="7" height="7"/>'}</svg>${esc(COND[s.cond]?.curto ?? s.cond + '%')} ${s.orient}</span></td>
+        ${TEMPS.map(tt => { const p = s.pontos.find(q => q.t === tt); return `<td>${p ? `<b>${br(p.st.m, 1)}</b><small>${p.st.sd ? `± ${br(p.st.sd, 1)}` : `n = ${p.st.n}`}</small>` : '<span class="nd">—</span>'}</td>`; }).join('')}
       </tr>`).join('')}</tbody>`;
   }
 
@@ -443,16 +444,20 @@
     return (st ? `<b>${br(st.m, 1)} J</b>${st.sd ? ` ± ${br(st.sd, 1)}` : ''} <span>(n = ${st.n})</span>` : '—') + quant;
   }
 
-  // Obs.: micrografia + quantificação do CP (quando importadas) e o texto de observação
+  // figura com a região do CP Charpy usada na quantificação de σ (face em azul)
+  const REGIAO = { src: 'assets/charpy/regiao-quantificacao.png', rot: 'Região de análise da quantificação de fase σ no CP Charpy (face destacada em azul; dimensões em mm)' };
+  const regiaoBtn = () => `<button type="button" class="mthumb rthumb" title="Ver a região de análise da quantificação"><img src="${REGIAO.src}" alt="Região de análise da quantificação" loading="lazy"><span>Região</span></button>`;
+
+  // Obs.: micrografia + quantificação do CP (quando importadas), região de análise e o texto de observação
   function obsHTML(c) {
     const m = microDe(c);
     const txt = c.obs ? `<span class="obs-txt">${esc(c.obs)}</span>` : '';
-    if (!m) return txt;
+    if (!m) return c.sigma != null ? `<div class="micro">${regiaoBtn()}</div>${txt}` : txt;
     const fig = (src, rot) => src
       ? `<button type="button" class="mthumb" data-micro="${esc(`${c.cond}|${c.orient}|${c.temp}|${c.cp}`)}" title="Ampliar ${rot.toLowerCase()} de ${esc(c.cp)}"><img src="${esc(src)}" alt="${rot} ${esc(c.cp)}" loading="lazy"><span>${rot === 'Micrografia' ? 'Original' : 'Quant.'}</span></button>`
       : '';
     return `<div class="micro">
-        ${fig(m.original, 'Micrografia')}${fig(m.quant, 'Quantificação')}
+        ${fig(m.original, 'Micrografia')}${fig(m.quant, 'Quantificação')}${regiaoBtn()}
         ${m.sigma_campo != null ? `<span class="micro-v">σ no campo <b>${br(m.sigma_campo, 2)} %</b>${m.ic95 != null ? ` ± ${br(m.ic95, 2)}` : ''}</span>` : ''}
       </div>${txt}`;
   }
@@ -466,6 +471,13 @@
   lb.addEventListener('click', (e) => { if (!e.target.closest('img')) fecharLb(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lb.classList.contains('open')) fecharLb(); });
   document.addEventListener('click', (e) => {
+    const r = e.target.closest('#ch-table .rthumb');
+    if (r) {
+      lb.querySelector('.lb-pair').innerHTML = `<figure class="lb-regiao"><img src="${REGIAO.src}" alt="Região de análise da quantificação"><figcaption>Região de análise</figcaption></figure>`;
+      lb.querySelector('.lb-cap').innerHTML = esc(REGIAO.rot);
+      lb.classList.add('open');
+      return;
+    }
     const b = e.target.closest('#ch-table .mthumb');
     if (!b) return;
     const m = MICRO[b.dataset.micro];

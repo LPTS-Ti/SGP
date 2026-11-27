@@ -77,6 +77,8 @@ def salvar(origem, destino, png=False, altura=None):
 N_CAMPOS_MO = 2   # campos de MO mostrados por condição
 # σ (%) de referência para escolher os campos de MO de cada condição; sem entrada, usa a média da amostra
 ALVO_MO = {'4': 4.0}
+# condições em que entram os primeiros campos da pasta (ordem do nome do arquivo), em vez dos mais próximos de um alvo
+PRIMEIROS_MO = {'6'}
 
 
 def eh_pasta_quant(nome):
@@ -128,9 +130,12 @@ def fontes_quant(avisos):
                 continue
             media = sum(s for s, _ in sig) / len(sig)
             alvo = ALVO_MO.get(cond, media)
-            escolhidos = sorted(sorted(sig, key=lambda t: abs(t[0] - alvo))[:N_CAMPOS_MO], key=lambda t: t[1])
+            if cond in PRIMEIROS_MO:
+                escolhidos = sorted(sig, key=lambda t: t[1])[:N_CAMPOS_MO]
+            else:
+                escolhidos = sorted(sorted(sig, key=lambda t: abs(t[0] - alvo))[:N_CAMPOS_MO], key=lambda t: t[1])
             print(f'MO  {cond}%  {len(sig)} campos na pasta "{d}", média σ = {media:.2f} %; '
-                  f'mais próximos de {alvo:.2f} %: {", ".join(os.path.basename(x) for _, x in escolhidos)}')
+                  f'{"primeiros campos" if cond in PRIMEIROS_MO else f"mais próximos de {alvo:.2f} %"}: {", ".join(os.path.basename(x) for _, x in escolhidos)}')
             for _, xlsx in escolhidos:
                 saida.append(('mo', cond, xlsx, pasta, FONTES['mo'], os.path.splitext(os.path.basename(xlsx))[0]))
     return saida

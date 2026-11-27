@@ -12,8 +12,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9862,
         "pontos_astm": 2500,
-        "original": "assets/kit1/2/mev-1.jpg?v=1795711611",
-        "quant": "assets/kit1/2/mev-1-quant.png?v=1795711611"
+        "original": "assets/kit1/2/mev-1.jpg?v=1795785391",
+        "quant": "assets/kit1/2/mev-1-quant.png?v=1795785391"
       },
       {
         "campo": "2%_BSE_020",
@@ -23,8 +23,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9889,
         "pontos_astm": 2500,
-        "original": "assets/kit1/2/mev-2.jpg?v=1795711611",
-        "quant": "assets/kit1/2/mev-2-quant.png?v=1795711611"
+        "original": "assets/kit1/2/mev-2.jpg?v=1795785391",
+        "quant": "assets/kit1/2/mev-2-quant.png?v=1795785391"
       }
     ],
     "mo": [
@@ -36,8 +36,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9613,
         "pontos_astm": 2500,
-        "original": "assets/kit1/2/mo-1.jpg?v=1795711611",
-        "quant": "assets/kit1/2/mo-1-quant.png?v=1795711611"
+        "original": "assets/kit1/2/mo-1.jpg?v=1795785391",
+        "quant": "assets/kit1/2/mo-1-quant.png?v=1795785391"
       },
       {
         "campo": "010",
@@ -47,8 +47,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9575,
         "pontos_astm": 2500,
-        "original": "assets/kit1/2/mo-2.jpg?v=1795711611",
-        "quant": "assets/kit1/2/mo-2-quant.png?v=1795711611"
+        "original": "assets/kit1/2/mo-2.jpg?v=1795785391",
+        "quant": "assets/kit1/2/mo-2-quant.png?v=1795785391"
       }
     ]
   },
@@ -62,8 +62,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9763,
         "pontos_astm": 2500,
-        "original": "assets/kit1/4/mev-1.jpg?v=1795711611",
-        "quant": "assets/kit1/4/mev-1-quant.png?v=1795711611"
+        "original": "assets/kit1/4/mev-1.jpg?v=1795785391",
+        "quant": "assets/kit1/4/mev-1-quant.png?v=1795785391"
       },
       {
         "campo": "4%_BSE_027",
@@ -73,8 +73,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9754,
         "pontos_astm": 2500,
-        "original": "assets/kit1/4/mev-2.jpg?v=1795711611",
-        "quant": "assets/kit1/4/mev-2-quant.png?v=1795711611"
+        "original": "assets/kit1/4/mev-2.jpg?v=1795785391",
+        "quant": "assets/kit1/4/mev-2-quant.png?v=1795785391"
       }
     ],
     "mo": [
@@ -86,8 +86,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9464,
         "pontos_astm": 2500,
-        "original": "assets/kit1/4/mo-1.jpg?v=1795711611",
-        "quant": "assets/kit1/4/mo-1-quant.png?v=1795711611"
+        "original": "assets/kit1/4/mo-1.jpg?v=1795785391",
+        "quant": "assets/kit1/4/mo-1-quant.png?v=1795785391"
       },
       {
         "campo": "005",
@@ -97,8 +97,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9492,
         "pontos_astm": 2500,
-        "original": "assets/kit1/4/mo-2.jpg?v=1795711611",
-        "quant": "assets/kit1/4/mo-2-quant.png?v=1795711611"
+        "original": "assets/kit1/4/mo-2.jpg?v=1795785391",
+        "quant": "assets/kit1/4/mo-2-quant.png?v=1795785391"
       }
     ]
   },
@@ -112,8 +112,8 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9816,
         "pontos_astm": 2500,
-        "original": "assets/kit1/6/mev-1.jpg?v=1795711611",
-        "quant": "assets/kit1/6/mev-1-quant.png?v=1795711611"
+        "original": "assets/kit1/6/mev-1.jpg?v=1795785391",
+        "quant": "assets/kit1/6/mev-1-quant.png?v=1795785391"
       },
       {
         "campo": "6%_BSE_006",
@@ -123,8 +123,32 @@ window.CAMPOS_KIT1 = {
         "modelo": "RandomForest",
         "confianca": 0.9818,
         "pontos_astm": 2500,
-        "original": "assets/kit1/6/mev-2.jpg?v=1795711611",
-        "quant": "assets/kit1/6/mev-2-quant.png?v=1795711611"
+        "original": "assets/kit1/6/mev-2.jpg?v=1795785391",
+        "quant": "assets/kit1/6/mev-2-quant.png?v=1795785391"
+      }
+    ],
+    "mo": [
+      {
+        "campo": "S6 #6_001",
+        "arquivo_planilha": "S6 #6_001.xlsx",
+        "sigma": 5.99,
+        "ic95": 0.91,
+        "modelo": "RandomForest",
+        "confianca": 0.9535,
+        "pontos_astm": 2500,
+        "original": "assets/kit1/6/mo-1.jpg?v=1795785391",
+        "quant": "assets/kit1/6/mo-1-quant.png?v=1795785391"
+      },
+      {
+        "campo": "S6 #6_002",
+        "arquivo_planilha": "S6 #6_002.xlsx",
+        "sigma": 5.37,
+        "ic95": 0.9,
+        "modelo": "RandomForest",
+        "confianca": 0.9549,
+        "pontos_astm": 2500,
+        "original": "assets/kit1/6/mo-2.jpg?v=1795785391",
+        "quant": "assets/kit1/6/mo-2-quant.png?v=1795785391"
       }
     ]
   }
@@ -136,27 +160,27 @@ window.GALERIA_KIT1 = {
     "mev": [
       {
         "campo": "2%_BSE_005",
-        "src": "assets/kit1/2/mev-gal-1.jpg?v=1795711611"
+        "src": "assets/kit1/2/mev-gal-1.jpg?v=1795785391"
       },
       {
         "campo": "2%_BSE_012",
-        "src": "assets/kit1/2/mev-gal-2.jpg?v=1795711611"
+        "src": "assets/kit1/2/mev-gal-2.jpg?v=1795785391"
       },
       {
         "campo": "2%_BSE_017",
-        "src": "assets/kit1/2/mev-gal-3.jpg?v=1795711611"
+        "src": "assets/kit1/2/mev-gal-3.jpg?v=1795785391"
       },
       {
         "campo": "2%_BSE_018",
-        "src": "assets/kit1/2/mev-gal-4.jpg?v=1795711611"
+        "src": "assets/kit1/2/mev-gal-4.jpg?v=1795785391"
       },
       {
         "campo": "2%_BSE_026",
-        "src": "assets/kit1/2/mev-gal-5.jpg?v=1795711611"
+        "src": "assets/kit1/2/mev-gal-5.jpg?v=1795785391"
       },
       {
         "campo": "2%_BSE_027",
-        "src": "assets/kit1/2/mev-gal-6.jpg?v=1795711611"
+        "src": "assets/kit1/2/mev-gal-6.jpg?v=1795785391"
       }
     ]
   },
@@ -164,27 +188,27 @@ window.GALERIA_KIT1 = {
     "mev": [
       {
         "campo": "4%_BSE_003",
-        "src": "assets/kit1/4/mev-gal-1.jpg?v=1795711611"
+        "src": "assets/kit1/4/mev-gal-1.jpg?v=1795785391"
       },
       {
         "campo": "4%_BSE_005",
-        "src": "assets/kit1/4/mev-gal-2.jpg?v=1795711611"
+        "src": "assets/kit1/4/mev-gal-2.jpg?v=1795785391"
       },
       {
         "campo": "4%_BSE_012",
-        "src": "assets/kit1/4/mev-gal-3.jpg?v=1795711611"
+        "src": "assets/kit1/4/mev-gal-3.jpg?v=1795785391"
       },
       {
         "campo": "4%_BSE_019",
-        "src": "assets/kit1/4/mev-gal-4.jpg?v=1795711611"
+        "src": "assets/kit1/4/mev-gal-4.jpg?v=1795785391"
       },
       {
         "campo": "4%_BSE_022",
-        "src": "assets/kit1/4/mev-gal-5.jpg?v=1795711611"
+        "src": "assets/kit1/4/mev-gal-5.jpg?v=1795785391"
       },
       {
         "campo": "4%_BSE_027",
-        "src": "assets/kit1/4/mev-gal-6.jpg?v=1795711611"
+        "src": "assets/kit1/4/mev-gal-6.jpg?v=1795785391"
       }
     ]
   },
@@ -192,27 +216,27 @@ window.GALERIA_KIT1 = {
     "mev": [
       {
         "campo": "6%_BSE_001",
-        "src": "assets/kit1/6/mev-gal-1.jpg?v=1795711611"
+        "src": "assets/kit1/6/mev-gal-1.jpg?v=1795785391"
       },
       {
         "campo": "6%_BSE_005",
-        "src": "assets/kit1/6/mev-gal-2.jpg?v=1795711611"
+        "src": "assets/kit1/6/mev-gal-2.jpg?v=1795785391"
       },
       {
         "campo": "6%_BSE_012",
-        "src": "assets/kit1/6/mev-gal-3.jpg?v=1795711611"
+        "src": "assets/kit1/6/mev-gal-3.jpg?v=1795785391"
       },
       {
         "campo": "6%_BSE_014",
-        "src": "assets/kit1/6/mev-gal-4.jpg?v=1795711611"
+        "src": "assets/kit1/6/mev-gal-4.jpg?v=1795785391"
       },
       {
         "campo": "6%_BSE_021",
-        "src": "assets/kit1/6/mev-gal-5.jpg?v=1795711611"
+        "src": "assets/kit1/6/mev-gal-5.jpg?v=1795785391"
       },
       {
         "campo": "6%_BSE_022",
-        "src": "assets/kit1/6/mev-gal-6.jpg?v=1795711611"
+        "src": "assets/kit1/6/mev-gal-6.jpg?v=1795785391"
       }
     ]
   }
