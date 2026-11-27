@@ -14,8 +14,8 @@ Procedimento (documentado também em DADOS_TRACAO.metodo):
  2. Pausa: intervalo de tempo entre registros > 1 s (o atuador fica parado e a força relaxa).
  3. Extensômetro confiável: do início até o último registro ANTES da pausa. Depois dela o
     canal salta sem o atuador se mover e, em seguida, cai (retirada física), por isso não é usado.
- 4. E: regressão linear σ × ε (extensômetro) entre 100 e 300 MPa; R² e sensibilidade
-    (janelas 50–250 e 150–350 MPa) registrados.
+ 4. E: regressão linear σ × ε (extensômetro) entre 20 e 80 MPa (trecho linear em todas as
+    condições); R² e sensibilidade (janelas 20–100 e 30–120 MPa) registrados.
  5. Rp0,2: interseção da curva com a reta de módulo E deslocada de 0,2 %.
  6. Rm = Fmax / S0 (a força máxima ocorre depois da retirada do extensômetro; Rm não depende da deformação).
  7. Deformação após a retirada: só é estimada na página quando o comprimento útil (Lc) é informado:
@@ -41,10 +41,13 @@ RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PASTA = os.path.join(RAIZ, 'Ensaio de Tração')
 SAIDA = os.path.join(RAIZ, 'Site', 'dados', 'tracao.js')
 SAIDA_CURVAS = os.path.join(RAIZ, 'Site', 'dados', 'tracao-curvas.js')
-VERSAO_ALGORITMO = '1.0'
+VERSAO_ALGORITMO = '1.1'
 
-JANELA_E = (100.0, 300.0)            # MPa
-JANELAS_SENS = [(50.0, 250.0), (150.0, 350.0)]
+# Janela de ajuste de E no trecho realmente linear: nos CPs com fase σ (4 e 6 %) a curva já
+# deixa de ser linear abaixo de 100 MPa; com 100–300 MPa o ajuste dava E ≈ 140 GPa e a reta não
+# passava pela origem. Com 20–80 MPa todas as condições dão E ≈ 200 GPa e intercepto ≈ 0.
+JANELA_E = (20.0, 80.0)              # MPa
+JANELAS_SENS = [(20.0, 100.0), (30.0, 120.0)]
 GAP_PAUSA = 1.0                      # s
 PONTOS_EXT = 320                     # pontos guardados no trecho com extensômetro
 PONTOS_POS = 380                     # pontos guardados depois da referência
