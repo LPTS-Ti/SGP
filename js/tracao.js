@@ -378,7 +378,7 @@
     const nota = $('tr-nota');
     nota.innerHTML = [
       visiveis().includes('ext') && `<b>Extensômetro:</b> ◆ Rp0,2 · <a href="#" class="tr-toggle${mostrarParalela ? ' on' : ''}" data-tr-paralela role="button" aria-pressed="${mostrarParalela}">${mostrarParalela ? '◼ Ocultar' : '◻ Mostrar'} linha de offset (0,2 %)</a>` +
-        (mostrarParalela ? ' <span class="prop-leg">(╌ método do offset: paralela ao trecho elástico deslocada de 0,2 % de deformação; a interseção com a curva define o limite de escoamento convencional Rp0,2 — ISO 6892-1 · do CP destacado; clique numa curva para trocar o CP)</span>' : ''),
+        '',
       visiveis().includes('maq') && '<b>Máquina:</b> ○ retirada do extensômetro · ■ força máxima (Rm) · ensaio completo até a ruptura',
     ].filter(Boolean).join('<br>') +
       '<br><span class="tr-zoom-dica">Zoom: roda do mouse sobre o ponto desejado · arrastar move o gráfico ampliado · Shift+arrastar amplia uma área · duplo clique ou "Ajustar" volta a 100 %</span>';
@@ -465,18 +465,6 @@
       svgEl('path', { d: path(xs, ys), fill: 'none', stroke: cor, 'stroke-width': larg, 'stroke-dasharray': dash, 'stroke-linejoin': 'round' }, g);
 
       if (ext) {
-        // uma única reta paralela ao trecho elástico (módulo E), deslocada de 0,2 % de deformação:
-        //   σ = E·(ε − 0,2 %) + b → cruza a curva no Rp0,2 (◆). É a do CP destacado ou, sem destaque,
-        //   a do primeiro CP visível. Vai de σ = 0 até um pouco acima do Rp0,2.
-        const cpReta = destaque && series.some(x => x.c.cp === destaque) ? destaque : series[0].c.cp;
-        if (mostrarParalela && c.cp === cpReta && s.p.E && s.p.Rp02) {
-          const E = s.p.E * 1000 / 100, b = (c.calc.E_b || 0) * (c.calc.S0 / s.p.S0);   // MPa por %
-          const sTop = s.p.Rp02 * 1.08;
-          const ge = svgEl('g', { 'clip-path': `url(#${clipId})` }, svg);
-          svgEl('line', { x1: x(0.2 - b / E), y1: y(0), x2: x(0.2 + (sTop - b) / E), y2: y(sTop),
-            stroke: cor, 'stroke-width': 1.8, 'stroke-dasharray': '6 4', class: 'prop' }, ge);
-          svgEl('text', { x: x(0.2 + (sTop * .45 - b) / E) + 10, y: y(sTop * .45), class: 'note' }, ge).textContent = `offset 0,2 % · ${c.cp}`;
-        }
         if (s.p.Rp02 && c.calc.Rp02_def != null) {
           svgEl('path', { d: `M${x(c.calc.Rp02_def)},${y(s.p.Rp02) - 5}l5,5l-5,5l-5,-5z`, fill: cor, stroke: FUNDO, 'stroke-width': 1 }, g);
         }
@@ -510,6 +498,26 @@
       }
       rot.push({ cp: c.cp, x: x(xs[iu]), y: y(ys[iu]) });
     });
+
+    // linha de offset de 0,2 % — uma por condição (alvo σ) visível, com a média dos CPs visíveis dela:
+    //   σ = Ē·(ε − 0,2 %) + b̄  (Ē e b̄: médias do ajuste elástico; vai de σ = 0 até 8 % acima do Rp0,2 médio)
+    if (ext && mostrarParalela) {
+      const conds = [...new Set(series.map(s => s.c.alvo))].sort((a, b) => a - b);
+      conds.forEach((alvo, i) => {
+        const ss = series.filter(s => s.c.alvo === alvo && s.p.E && s.p.Rp02);
+        if (!ss.length) return;
+        const med = (f) => ss.reduce((t, s) => t + f(s), 0) / ss.length;
+        const E = med(s => s.p.E * 1000 / 100);                                    // MPa por %
+        const b = med(s => (s.c.calc.E_b || 0) * (s.c.calc.S0 / s.p.S0));
+        const Rp = med(s => s.p.Rp02), sTop = Rp * 1.08, cor = corDe(ss[0].c);
+        const ge = svgEl('g', { class: 'offset', 'clip-path': `url(#${clipId})` }, svg);
+        svgEl('line', { x1: x(0.2 - b / E), y1: y(0), x2: x(0.2 + (sTop - b) / E), y2: y(sTop),
+          stroke: cor, 'stroke-width': 2, 'stroke-dasharray': '7 4', class: 'prop' }, ge);
+        const sl = sTop * (0.08 + 0.15 * i);                                       // rótulos na parte baixa, livre das curvas
+        svgEl('text', { x: x(0.2 + (sl - b) / E) + 10, y: y(sl), class: 'note', style: `fill:${cor};font-weight:600` }, ge).textContent =
+          `offset 0,2 % · ${COND[alvo]?.curto ?? alvo + '%'} (Ē = ${br(E / 10, 0)} GPa, n = ${ss.length})`;
+      });
+    }
 
     const gl = svgEl('g', { class: 'lbls' }, svg);
     rot.sort((a, b) => a.y - b.y);
